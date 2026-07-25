@@ -90,11 +90,10 @@ If rebuilding npm from zero, publish these packages from the `bunyinu` account:
 - `repovow-darwin-x64`
 - `repovow-darwin-arm64`
 
-The first publish requires an npm granular access token with read/write access to
-all five new packages and 2FA bypass enabled. Store it as the `NPM_TOKEN` GitHub
-secret. After the packages exist, configure npm trusted publishing for
-`bunyinu/repovow` and `.github/workflows/release.yml`; the workflow supports OIDC
-and provenance without a long-lived token.
+All five packages use npm trusted publishing for `bunyinu/repovow` and
+`.github/workflows/release.yml`. GitHub Actions exchanges its OIDC identity for a
+short-lived publish credential and records provenance; no npm token is stored in
+GitHub.
 
 ---
 
@@ -439,14 +438,9 @@ failed release can be rerun after correcting registry access.
 
 ### npm authorization
 
-Use one of these authorization methods:
-
-- npm trusted publisher for `bunyinu/repovow` and `.github/workflows/release.yml`
-- `NPM_TOKEN` with read/write package access and 2FA bypass, required to bootstrap
-  packages that do not yet exist
-
-The workflow fails instead of silently skipping npm when authorization is
-missing or invalid.
+Each package trusts the GitHub-hosted `.github/workflows/release.yml` workflow in
+`bunyinu/repovow` for `npm publish`. The workflow has `id-token: write` permission,
+uses an OIDC-capable npm CLI, and fails if trusted publishing is unavailable.
 
 ### Post-release verification (mandatory)
 

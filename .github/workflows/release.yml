@@ -55,8 +55,7 @@ jobs:
         env:
           REPOVOW_TARGET: ${{ matrix.target }}
           REPOVOW_NPM_PKG: ${{ matrix.npm_pkg }}
-          REPOVOW_VERSION: ${{ github.ref_name }}
-        run: ./scripts/stage-npm.sh --target "${{ matrix.target }}" --npm-pkg "${{ matrix.npm_pkg }}"
+        run: ./scripts/stage-npm.sh --skip-build --target "${{ matrix.target }}" --npm-pkg "${{ matrix.npm_pkg }}"
 
       - name: Archive binary
         run: |
@@ -105,18 +104,9 @@ jobs:
           node npm/repovow-cli/scripts/sync-version.js "$VERSION"
 
       - name: Publish platform packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME#v}"
-
-          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
-            npm whoami
-          else
-            echo "NPM_TOKEN is unset; npm trusted publishing must authorize this workflow"
-          fi
-
           node npm/repovow-cli/scripts/prep-publish.js "$VERSION"
 
           publish_unless_present() {

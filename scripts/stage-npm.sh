@@ -7,6 +7,7 @@ cd "$ROOT"
 
 TARGET="${REPOVOW_TARGET:-}"
 NPM_PKG="${REPOVOW_NPM_PKG:-}"
+SKIP_BUILD=0
 
 detect_host() {
   local arch os
@@ -25,6 +26,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
     --npm-pkg) NPM_PKG="$2"; shift 2 ;;
+    --skip-build) SKIP_BUILD=1; shift ;;
     *) echo "unknown arg: $1" >&2; exit 1 ;;
   esac
 done
@@ -33,16 +35,16 @@ if [[ -z "$TARGET" || -z "$NPM_PKG" ]]; then
   read -r TARGET NPM_PKG <<< "$(detect_host)"
 fi
 
-echo "Building repovow for ${TARGET}..."
-cargo build --release --target "$TARGET" 2>/dev/null || cargo build --release
+if [[ "$SKIP_BUILD" -eq 0 ]]; then
+  echo "Building repovow for ${TARGET}..."
+  cargo build --release --target "$TARGET"
+else
+  echo "Staging prebuilt repovow for ${TARGET}..."
+fi
 
 BIN="target/${TARGET}/release/repovow"
 if [[ ! -f "$BIN" ]]; then
-  BIN="target/release/repovow"
-fi
-
-if [[ ! -f "$BIN" ]]; then
-  echo "binary not found at target/${TARGET}/release/repovow or target/release/repovow" >&2
+  echo "binary not found at ${BIN}" >&2
   exit 1
 fi
 

@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bunyinu/repovow.git"
+    "url": "git+https://github.com/bunyinu/repovow.git"
   },
   "keywords": [
     "claude-code",
@@ -15,7 +15,7 @@
     "mcp"
   ],
   "bin": {
-    "repovow": "./bin/repovow.js"
+    "repovow": "bin/repovow.js"
   },
   "scripts": {
     "postinstall": "node scripts/postinstall.js"
