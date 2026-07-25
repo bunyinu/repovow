@@ -43,21 +43,21 @@ pub fn run_acceptance_gate(root: Option<&Path>) -> Result<(bool, String)> {
     )?;
     Ok((
         false,
-        format!("Keel acceptance gate failed (`{cmd}`): {detail_short}"),
+        format!("RepoVow acceptance gate failed (`{cmd}`): {detail_short}"),
     ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::{save_config, KeelConfig};
+    use crate::state::{save_config, RepoVowConfig};
 
     #[test]
     fn gate_passes_on_true_command() {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
-        std::fs::create_dir_all(root.join(crate::KEEL_DIR)).unwrap();
-        let mut cfg = KeelConfig::default();
+        std::fs::create_dir_all(root.join(crate::REPOVOW_DIR)).unwrap();
+        let mut cfg = RepoVowConfig::default();
         cfg.acceptance_gate.enabled = true;
         cfg.acceptance_gate.command = "true".into();
         save_config(&cfg, Some(root)).unwrap();
@@ -70,8 +70,8 @@ mod tests {
     fn gate_fails_on_false_command() {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
-        std::fs::create_dir_all(root.join(crate::KEEL_DIR)).unwrap();
-        let mut cfg = KeelConfig::default();
+        std::fs::create_dir_all(root.join(crate::REPOVOW_DIR)).unwrap();
+        let mut cfg = RepoVowConfig::default();
         cfg.acceptance_gate.enabled = true;
         cfg.acceptance_gate.command = "false".into();
         save_config(&cfg, Some(root)).unwrap();

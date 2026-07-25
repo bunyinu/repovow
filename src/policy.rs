@@ -1,20 +1,29 @@
 use anyhow::{bail, Context, Result};
-use ed25519_dalek::{Signer as Ed25519Signer, SigningKey as Ed25519SigningKey, Verifier as Ed25519Verifier, VerifyingKey as Ed25519VerifyingKey};
+use ed25519_dalek::{
+    Signer as Ed25519Signer, SigningKey as Ed25519SigningKey, Verifier as Ed25519Verifier,
+    VerifyingKey as Ed25519VerifyingKey,
+};
 use p256::ecdsa::signature::Verifier as P256Verifier;
-use p256::ecdsa::{Signature as P256Signature, SigningKey as P256SigningKey, VerifyingKey as P256VerifyingKey};
+use p256::ecdsa::{
+    Signature as P256Signature, SigningKey as P256SigningKey, VerifyingKey as P256VerifyingKey,
+};
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::Path;
 
-use crate::paths::{keel_dir, utcnow, write_json_atomic, POLICY_KEY_FILE, POLICY_PUB_FILE, POLICY_SIG_FILE};
+use crate::paths::{
+    read_json, repovow_dir, utcnow, write_json_atomic, POLICY_KEY_FILE, POLICY_PUB_FILE,
+    POLICY_SIG_FILE,
+};
 use crate::state::{load_config, load_state, log_event, save_config, Goal, PolicyMode};
 
 const POLICY_MD_FILE: &str = "policy.md";
+const POLICY_WARNING_MARKER_FILE: &str = "policy-warning-marker.json";
 const POLICY_VERSION: u32 = 1;
 
-/// Default for new `keel policy init` — NIST P-256 / secp256r1 (FIPS 186-4 approved).
+/// Default for new `repovow policy init` — NIST P-256 / secp256r1 (FIPS 186-4 approved).
 pub const DEFAULT_POLICY_ALGORITHM: &str = "ecdsa-p256";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,7 +45,7 @@ impl PolicyAlgorithm {
     fn fips_note(self) -> &'static str {
         match self {
             Self::EcdsaP256 => "FIPS 186-4 approved algorithm (ECDSA P-256)",
-            Self::Ed25519 => "not FIPS-approved — migrate with `keel policy init`",
+            Self::Ed25519 => "not FIPS-approved — migrate with `repovow policy init`",
         }
     }
 }
@@ -44,7 +53,10 @@ impl PolicyAlgorithm {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PolicyStatus {
     Off,
-    Valid { signed_at: String, algorithm: String },
+    Valid {
+        signed_at: String,
+        algorithm: String,
+    },
     Unsigned,
     Tampered,
     MissingPublicKey,
@@ -76,15 +88,15 @@ impl PolicyStatus {
                 format!("Signature valid ({algorithm}, signed {signed_at}).")
             }
             PolicyStatus::Unsigned => {
-                "Goal has no signature. Run `keel policy sign` or commit a valid policy.sig.".into()
+                "Goal has no signature. Run `repovow policy sign` or commit a valid policy.sig.".into()
             }
             PolicyStatus::Tampered => {
                 "Goal fields do not match the signed policy — possible tampering or stale signature. \
-                 Re-sign with `keel policy sign` or restore from trusted policy.md."
+                 Re-sign with `repovow policy sign` or restore from trusted policy.md."
                     .into()
             }
             PolicyStatus::MissingPublicKey => {
-                "No policy.pub — run `keel policy init` or `keel policy trust <pubkey>`.".into()
+                "No policy.pub — run `repovow policy init` or `repovow policy trust <pubkey>`.".into()
             }
             PolicyStatus::InvalidSignature => "Signature does not verify against policy.pub.".into(),
             PolicyStatus::NoGoal => "No active goal to verify.".into(),
@@ -145,7 +157,7 @@ fn to_hex(bytes: &[u8]) -> String {
 
 fn from_hex(hex: &str) -> Result<Vec<u8>> {
     let hex = hex.trim();
-    if hex.len() % 2 != 0 {
+    if !hex.len().is_multiple_of(2) {
         bail!("invalid hex length");
     }
     (0..hex.len())
@@ -154,8 +166,10 @@ fn from_hex(hex: &str) -> Result<Vec<u8>> {
         .collect()
 }
 
-fn policy_paths(root: Option<&Path>) -> (std::path::PathBuf, std::path::PathBuf, std::path::PathBuf) {
-    let dir = keel_dir(root);
+fn policy_paths(
+    root: Option<&Path>,
+) -> (std::path::PathBuf, std::path::PathBuf, std::path::PathBuf) {
+    let dir = repovow_dir(root);
     (
         dir.join(POLICY_PUB_FILE),
         dir.join(POLICY_KEY_FILE),
@@ -191,8 +205,8 @@ fn write_key_file(path: &Path, algorithm: PolicyAlgorithm, hex: &str) -> Result<
 
 fn read_public_material(root: Option<&Path>) -> Result<KeyMaterial> {
     let (pub_path, _, _) = policy_paths(root);
-    let content = fs::read_to_string(&pub_path)
-        .with_context(|| format!("read {}", pub_path.display()))?;
+    let content =
+        fs::read_to_string(&pub_path).with_context(|| format!("read {}", pub_path.display()))?;
     let (algorithm, public_bytes) = parse_key_file(&content)?;
     validate_public_key(algorithm, &public_bytes)?;
     Ok(KeyMaterial {
@@ -204,8 +218,8 @@ fn read_public_material(root: Option<&Path>) -> Result<KeyMaterial> {
 
 fn read_signing_material(root: Option<&Path>) -> Result<KeyMaterial> {
     let (_, key_path, _) = policy_paths(root);
-    let content = fs::read_to_string(&key_path)
-        .with_context(|| format!("read {}", key_path.display()))?;
+    let content =
+        fs::read_to_string(&key_path).with_context(|| format!("read {}", key_path.display()))?;
     let (algorithm, secret_bytes) = parse_key_file(&content)?;
     validate_secret_key(algorithm, &secret_bytes)?;
     Ok(KeyMaterial {
@@ -323,7 +337,7 @@ fn read_signature_record(root: Option<&Path>) -> Result<Option<PolicySignature>>
 }
 
 pub fn ensure_gitignore(root: Option<&Path>) -> Result<()> {
-    let dir = keel_dir(root);
+    let dir = repovow_dir(root);
     fs::create_dir_all(&dir)?;
     let path = dir.join(".gitignore");
     let want = format!("{POLICY_KEY_FILE}\n");
@@ -390,12 +404,16 @@ pub(crate) fn init_policy(root: Option<&Path>, algorithm: PolicyAlgorithm) -> Re
         let _ = crate::snapshot::write_snapshot(root);
     }
 
-    println!("Policy signing initialized ({}, {}).", algorithm.id(), algorithm.fips_note());
+    println!(
+        "Policy signing initialized ({}, {}).",
+        algorithm.id(),
+        algorithm.fips_note()
+    );
     println!("  Public key:  {}", pub_path.display());
     println!("  Private key: {} (gitignored)", key_path.display());
     println!("  Mode: required — hooks block tools when goal is unsigned or tampered.");
     if algorithm == PolicyAlgorithm::Ed25519 {
-        println!("  Note: Ed25519 is not FIPS-approved. Prefer `keel policy init` (default ecdsa-p256) for regulated environments.");
+        println!("  Note: Ed25519 is not FIPS-approved. Prefer `repovow policy init` (default ecdsa-p256) for regulated environments.");
     }
     println!("Commit policy.pub + policy.sig; keep policy.key secret (CI or lead machine only).");
     Ok(())
@@ -409,7 +427,9 @@ pub fn trust_pubkey(root: Option<&Path>, algorithm: Option<&str>, pubkey_hex: &s
         match bytes.len() {
             32 => PolicyAlgorithm::Ed25519,
             33 | 65 => PolicyAlgorithm::EcdsaP256,
-            n => bail!("cannot infer algorithm from {n}-byte public key — pass --algorithm ecdsa-p256"),
+            n => bail!(
+                "cannot infer algorithm from {n}-byte public key — pass --algorithm ecdsa-p256"
+            ),
         }
     };
     validate_public_key(algorithm, &bytes)?;
@@ -428,7 +448,7 @@ pub fn trust_pubkey(root: Option<&Path>, algorithm: Option<&str>, pubkey_hex: &s
         algorithm.fips_note()
     );
     println!("  Path: {}", pub_path.display());
-    println!("Mode: required — verify with `keel policy verify` after pulling policy.sig.");
+    println!("Mode: required — verify with `repovow policy verify` after pulling policy.sig.");
     Ok(())
 }
 
@@ -465,7 +485,7 @@ pub fn sign_policy(root: Option<&Path>) -> Result<()> {
         .context("no active goal — set a goal before signing")?;
 
     let signing = read_signing_material(root).context(
-        "no policy.key — run `keel policy init` on a trusted machine or use `keel policy trust` with team pubkey",
+        "no policy.key — run `repovow policy init` on a trusted machine or use `repovow policy trust` with team pubkey",
     )?;
     let algorithm = signing.algorithm;
     let secret = signing
@@ -541,8 +561,15 @@ pub fn hook_block_reason(root: Option<&Path>) -> Result<Option<String>> {
         PolicyMode::Off => Ok(None),
         PolicyMode::Warn => {
             let status = verify_policy(root)?;
-            if !status.is_ok() && status != PolicyStatus::NoGoal {
-                eprintln!("Keel policy warning: {} — {}", status.label(), status.detail());
+            if !status.is_ok()
+                && status != PolicyStatus::NoGoal
+                && claim_policy_warning(root, &status)?
+            {
+                eprintln!(
+                    "RepoVow policy warning: {} — {}",
+                    status.label(),
+                    status.detail()
+                );
             }
             Ok(None)
         }
@@ -552,12 +579,28 @@ pub fn hook_block_reason(root: Option<&Path>) -> Result<Option<String>> {
                 return Ok(None);
             }
             Ok(Some(format!(
-                "Keel policy enforcement ({}) — {}",
+                "RepoVow policy enforcement ({}) — {}",
                 status.label(),
                 status.detail()
             )))
         }
     }
+}
+
+fn claim_policy_warning(root: Option<&Path>, status: &PolicyStatus) -> Result<bool> {
+    let path = repovow_dir(root).join(POLICY_WARNING_MARKER_FILE);
+    let session = load_state(root)?.sessions;
+    let marker = read_json(&path, serde_json::json!({}))?;
+    if marker["session"].as_u64() == Some(session as u64)
+        && marker["status"].as_str() == Some(status.label())
+    {
+        return Ok(false);
+    }
+    write_json_atomic(
+        &path,
+        &serde_json::json!({"session": session, "status": status.label()}),
+    )?;
+    Ok(true)
 }
 
 pub fn after_goal_change(root: Option<&Path>) -> Result<()> {
@@ -567,7 +610,10 @@ pub fn after_goal_change(root: Option<&Path>) -> Result<()> {
     sign_policy(root)
 }
 
-pub fn protect_goal_after_pull(root: Option<&Path>, local_before: &crate::state::KeelState) -> Result<()> {
+pub fn protect_goal_after_pull(
+    root: Option<&Path>,
+    local_before: &crate::state::RepoVowState,
+) -> Result<()> {
     let config = load_config(root)?;
     if config.policy.mode != PolicyMode::Required {
         return Ok(());
@@ -591,24 +637,32 @@ pub fn protect_goal_after_pull(root: Option<&Path>, local_before: &crate::state:
         }),
     )?;
     eprintln!(
-        "Keel policy: cloud pull goal rejected ({}) — kept local signed goal.",
+        "RepoVow policy: cloud pull goal rejected ({}) — kept local signed goal.",
         status.label()
     );
     Ok(())
 }
 
 pub fn write_policy_md(root: Option<&Path>) -> Result<std::path::PathBuf> {
-    let path = keel_dir(root).join(POLICY_MD_FILE);
+    let path = repovow_dir(root).join(POLICY_MD_FILE);
     let state = load_state(root)?;
     let status = verify_policy(root).unwrap_or(PolicyStatus::Unsigned);
     let algo_line = has_public_key(root)
         .then(|| read_public_material(root).ok())
         .flatten()
-        .map(|k| format!("Algorithm: **{}** ({})", k.algorithm.id(), k.algorithm.fips_note()))
-        .unwrap_or_else(|| format!("Algorithm: **{DEFAULT_POLICY_ALGORITHM}** (default for new installs)"));
+        .map(|k| {
+            format!(
+                "Algorithm: **{}** ({})",
+                k.algorithm.id(),
+                k.algorithm.fips_note()
+            )
+        })
+        .unwrap_or_else(|| {
+            format!("Algorithm: **{DEFAULT_POLICY_ALGORITHM}** (default for new installs)")
+        });
 
     let mut lines = vec![
-        "# Keel policy (signed goal)".into(),
+        "# RepoVow policy (signed goal)".into(),
         String::new(),
         "_Cryptographic policy for title, acceptance, and constraints only. \
          Agent-written progress and failures live in `snapshot.md` and are **not** signed._"
@@ -620,7 +674,10 @@ pub fn write_policy_md(root: Option<&Path>) -> Result<std::path::PathBuf> {
 
     let badge = match &status {
         PolicyStatus::Off => "Policy signing: **off**".into(),
-        PolicyStatus::Valid { signed_at, algorithm } => {
+        PolicyStatus::Valid {
+            signed_at,
+            algorithm,
+        } => {
             format!("Policy signature: **valid** ({algorithm}, signed {signed_at})")
         }
         other => format!("Policy signature: **{}**", other.label().to_uppercase()),
@@ -652,7 +709,7 @@ pub fn write_policy_md(root: Option<&Path>) -> Result<std::path::PathBuf> {
     }
 
     lines.push(format!(
-        "_Verify: `keel policy verify` · Re-sign: `keel policy sign` · Mode: {}_",
+        "_Verify: `repovow policy verify` · Re-sign: `repovow policy sign` · Mode: {}_",
         mode_label(&load_config(root)?.policy.mode)
     ));
 
@@ -664,7 +721,7 @@ pub fn write_policy_md(root: Option<&Path>) -> Result<std::path::PathBuf> {
     Ok(path)
 }
 
-/// JSON for Keel Cloud dashboard (`policy.label`, `policy.ok`, etc.).
+/// JSON for RepoVow Cloud dashboard (`policy.label`, `policy.ok`, etc.).
 pub fn policy_status_json(root: Option<&Path>) -> serde_json::Value {
     let config = load_config(root).unwrap_or_default();
     let status = verify_policy(root).unwrap_or(PolicyStatus::Off);
@@ -683,7 +740,10 @@ pub fn doctor_detail(root: Option<&Path>) -> (bool, String) {
         Err(e) => return (false, e.to_string()),
     };
     match config.policy.mode {
-        PolicyMode::Off => (true, "off — `keel policy init` to enable signed goals".into()),
+        PolicyMode::Off => (
+            true,
+            "off — `repovow policy init` to enable signed goals".into(),
+        ),
         PolicyMode::Warn | PolicyMode::Required => {
             let status = verify_policy(root).unwrap_or(PolicyStatus::Unsigned);
             let ok = config.policy.mode == PolicyMode::Warn || status.is_ok();
@@ -704,7 +764,7 @@ pub fn doctor_detail(root: Option<&Path>) -> (bool, String) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::{save_config, save_state, Goal, KeelConfig, KeelState};
+    use crate::state::{save_config, save_state, Goal, RepoVowConfig, RepoVowState};
 
     fn fixture_goal() -> Goal {
         Goal {
@@ -716,10 +776,12 @@ mod tests {
     }
 
     fn setup(root: &Path) {
-        std::fs::create_dir_all(root.join(crate::KEEL_DIR)).unwrap();
-        save_config(&KeelConfig::default(), Some(root)).unwrap();
-        let mut state = KeelState::default();
-        state.goal = Some(fixture_goal());
+        std::fs::create_dir_all(root.join(crate::REPOVOW_DIR)).unwrap();
+        save_config(&RepoVowConfig::default(), Some(root)).unwrap();
+        let mut state = RepoVowState {
+            goal: Some(fixture_goal()),
+            ..RepoVowState::default()
+        };
         save_state(&mut state, Some(root)).unwrap();
     }
 
@@ -761,23 +823,39 @@ mod tests {
         sign_policy(Some(lead.path())).unwrap();
 
         let pub_content =
-            std::fs::read_to_string(lead.path().join(crate::KEEL_DIR).join(POLICY_PUB_FILE)).unwrap();
+            std::fs::read_to_string(lead.path().join(crate::REPOVOW_DIR).join(POLICY_PUB_FILE))
+                .unwrap();
         let sig_raw =
-            std::fs::read_to_string(lead.path().join(crate::KEEL_DIR).join(POLICY_SIG_FILE)).unwrap();
+            std::fs::read_to_string(lead.path().join(crate::REPOVOW_DIR).join(POLICY_SIG_FILE))
+                .unwrap();
         std::fs::write(
-            dev.path().join(crate::KEEL_DIR).join(POLICY_SIG_FILE),
+            dev.path().join(crate::REPOVOW_DIR).join(POLICY_SIG_FILE),
             sig_raw,
         )
         .unwrap();
 
-        let pub_hex = pub_content
-            .lines()
-            .nth(1)
-            .expect("two-line policy.pub");
+        let pub_hex = pub_content.lines().nth(1).expect("two-line policy.pub");
         trust_pubkey(Some(dev.path()), Some("ecdsa-p256"), pub_hex).unwrap();
         assert!(matches!(
             verify_policy(Some(dev.path())).unwrap(),
             PolicyStatus::Valid { .. }
         ));
+    }
+
+    #[test]
+    fn policy_warning_is_claimed_once_per_session_and_status() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path();
+        setup(root);
+        let status = PolicyStatus::MissingPublicKey;
+
+        assert!(claim_policy_warning(Some(root), &status).unwrap());
+        assert!(!claim_policy_warning(Some(root), &status).unwrap());
+        assert!(claim_policy_warning(Some(root), &PolicyStatus::Unsigned).unwrap());
+
+        let mut state = load_state(Some(root)).unwrap();
+        state.sessions += 1;
+        save_state(&mut state, Some(root)).unwrap();
+        assert!(claim_policy_warning(Some(root), &status).unwrap());
     }
 }

@@ -2,27 +2,27 @@ use anyhow::Result;
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::paths::{keel_dir, read_jsonl_tail, SNAPSHOT_FILE, ATTEMPTS_FILE};
+use crate::paths::{read_jsonl_tail, repovow_dir, ATTEMPTS_FILE, SNAPSHOT_FILE};
 use crate::policy;
 use crate::state::{load_config, load_state};
 
 pub fn render_snapshot(root: Option<&Path>) -> Result<String> {
     let state = load_state(root)?;
     let config = load_config(root)?;
-    let attempts = read_jsonl_tail(&keel_dir(root).join(ATTEMPTS_FILE), 200)?;
+    let attempts = read_jsonl_tail(&repovow_dir(root).join(ATTEMPTS_FILE), 200)?;
     Ok(render_from_parts(&state, &config, &attempts))
 }
 
 pub fn render_from_parts(
-    state: &crate::state::KeelState,
-    config: &crate::state::KeelConfig,
+    state: &crate::state::RepoVowState,
+    config: &crate::state::RepoVowConfig,
     attempts: &[serde_json::Value],
 ) -> String {
     let mut lines: Vec<String> = vec![
-        "# Keel state snapshot".into(),
+        "# RepoVow state snapshot".into(),
         String::new(),
         "_Agent-written progress and failures below are **not** cryptographically signed._".into(),
-        "_Trusted goal policy (title, acceptance, constraints): read `.keel/policy.md` and verify with `keel policy verify`._".into(),
+        "_Trusted goal policy (title, acceptance, constraints): read `.repovow/policy.md` and verify with `repovow policy verify`._".into(),
         String::new(),
         format!(
             "_Compactions: {} · Sessions: {} · Last agent: {}_",
@@ -31,16 +31,22 @@ pub fn render_from_parts(
             state.last_agent.as_deref().unwrap_or("unknown")
         ),
         String::new(),
-        "Read this file at session start and after every compaction. \
-         Do not repeat failed approaches listed below."
+        "Hooks inject a compact context packet automatically. Read this full snapshot only when \
+         the packet omitted needed detail or hooks were unavailable."
             .into(),
         String::new(),
     ];
 
-    lines.extend(goal_section(&state));
-    lines.extend(progress_section(&state));
-    lines.extend(decisions_section(&state, config.snapshot_max_decisions as usize));
-    lines.extend(failures_section(&attempts, config.snapshot_max_failures as usize));
+    lines.extend(goal_section(state));
+    lines.extend(progress_section(state));
+    lines.extend(decisions_section(
+        state,
+        config.snapshot_max_decisions as usize,
+    ));
+    lines.extend(failures_section(
+        attempts,
+        config.snapshot_max_failures as usize,
+    ));
 
     let mut text = lines.join("\n");
     if !text.ends_with('\n') {
@@ -56,11 +62,11 @@ pub fn render_from_parts(
     text
 }
 
-fn goal_section(state: &crate::state::KeelState) -> Vec<String> {
+fn goal_section(state: &crate::state::RepoVowState) -> Vec<String> {
     let Some(goal) = &state.goal else {
         return vec![
             "## Goal".into(),
-            "_No active goal. Run `keel goal set \"...\"` or `keel tui`._".into(),
+            "_No active goal. Run `repovow goal set \"...\"` or `repovow tui`._".into(),
             String::new(),
         ];
     };
@@ -86,7 +92,7 @@ fn goal_section(state: &crate::state::KeelState) -> Vec<String> {
     lines
 }
 
-fn progress_section(state: &crate::state::KeelState) -> Vec<String> {
+fn progress_section(state: &crate::state::RepoVowState) -> Vec<String> {
     let mut lines = vec!["## Progress".into(), String::new()];
     if let Some(step) = &state.progress.current_step {
         lines.push(format!("**Current step:** {step}"));
@@ -111,7 +117,7 @@ fn progress_section(state: &crate::state::KeelState) -> Vec<String> {
     lines
 }
 
-fn decisions_section(state: &crate::state::KeelState, limit: usize) -> Vec<String> {
+fn decisions_section(state: &crate::state::RepoVowState, limit: usize) -> Vec<String> {
     if state.decisions.is_empty() {
         return vec![];
     }
@@ -170,7 +176,7 @@ fn failures_section(attempts: &[serde_json::Value], limit: usize) -> Vec<String>
 }
 
 pub fn write_snapshot(root: Option<&Path>) -> Result<std::path::PathBuf> {
-    let path = keel_dir(root).join(SNAPSHOT_FILE);
+    let path = repovow_dir(root).join(SNAPSHOT_FILE);
     let text = render_snapshot(root)?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
@@ -183,24 +189,26 @@ pub fn write_snapshot(root: Option<&Path>) -> Result<std::path::PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::{Goal, KeelState};
+    use crate::state::{Goal, RepoVowState};
 
     #[test]
     fn snapshot_includes_goal() {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
-        std::fs::create_dir_all(root.join(crate::KEEL_DIR)).unwrap();
+        std::fs::create_dir_all(root.join(crate::REPOVOW_DIR)).unwrap();
 
-        let mut state = KeelState::default();
-        state.goal = Some(Goal {
-            title: "Ship v0.2".into(),
-            acceptance: vec!["tests pass".into()],
-            constraints: vec![],
-            started_at: crate::paths::utcnow(),
-        });
+        let mut state = RepoVowState {
+            goal: Some(Goal {
+                title: "Ship v0.2".into(),
+                acceptance: vec!["tests pass".into()],
+                constraints: vec![],
+                started_at: crate::paths::utcnow(),
+            }),
+            ..RepoVowState::default()
+        };
         state.progress.current_step = Some("write rust".into());
         crate::state::save_state(&mut state, Some(root)).unwrap();
-        crate::state::save_config(&crate::state::KeelConfig::default(), Some(root)).unwrap();
+        crate::state::save_config(&crate::state::RepoVowConfig::default(), Some(root)).unwrap();
 
         let snap = render_snapshot(Some(root)).unwrap();
         assert!(snap.contains("Ship v0.2"));

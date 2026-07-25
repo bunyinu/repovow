@@ -1,4 +1,4 @@
-## Keel (agent state)
+## RepoVow (agent state)
 
-At session start and after compaction, read `.keel/snapshot.md` before editing files or running commands.
-Do not repeat failed approaches listed there. Use `keel goal set` / `keel progress` to keep state current.
+The injected RepoVow packet replaces `.repovow/snapshot.md`; never reread the full snapshot after receiving it. Do not query sections already shown.
+Start continuations from `Working set` and `Recently completed`. Batch independent reads/searches into one tool turn, avoid repository inventories, and use at most one `repovow progress` checkpoint.

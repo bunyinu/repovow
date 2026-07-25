@@ -5,7 +5,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::path::Path;
 
-use crate::paths::{keel_dir, read_jsonl_tail, ATTEMPTS_FILE};
+use crate::paths::{read_jsonl_tail, repovow_dir, ATTEMPTS_FILE};
 use crate::state::{load_config, log_attempt};
 
 fn collapse_ws(s: &str) -> String {
@@ -38,24 +38,22 @@ pub fn normalize_action(tool: &str, tool_input: &Value) -> String {
     format!("{}:{hex}", tool.to_lowercase())
 }
 
-pub fn should_block_retry(
-    root: Option<&Path>,
-    tool: &str,
-    action: &str,
-) -> Result<(bool, String)> {
+pub fn should_block_retry(root: Option<&Path>, tool: &str, action: &str) -> Result<(bool, String)> {
     let config = load_config(root)?;
     let max_fail = config.loop_breaker.max_same_failure;
     let window = config.loop_breaker.window_minutes;
     let cutoff = Utc::now() - Duration::minutes(window as i64);
 
-    let attempts = read_jsonl_tail(&keel_dir(root).join(ATTEMPTS_FILE), 500)?;
+    let attempts = read_jsonl_tail(&repovow_dir(root).join(ATTEMPTS_FILE), 500)?;
     let failures: Vec<&Value> = attempts
         .iter()
         .filter(|a| {
             a["ok"] == false
                 && a["tool"].as_str() == Some(tool)
                 && a["action"].as_str() == Some(action)
-                && parse_ts(a["at"].as_str().unwrap_or("")).map(|t| t >= cutoff).unwrap_or(false)
+                && parse_ts(a["at"].as_str().unwrap_or(""))
+                    .map(|t| t >= cutoff)
+                    .unwrap_or(false)
         })
         .collect();
 
@@ -68,8 +66,8 @@ pub fn should_block_retry(
     let detail_short: String = detail.chars().take(300).collect();
     let action_short: String = action.chars().take(100).collect();
     let reason = format!(
-        "Keel loop breaker: `{action_short}` already failed {} times in the last {window}m. \
-         Read `.keel/snapshot.md` and try a different approach. Last error: {detail_short}",
+        "RepoVow loop breaker: `{action_short}` already failed {} times in the last {window}m. \
+         Read failures with `repovow context --section failures` and try a different approach. Last error: {detail_short}",
         failures.len()
     );
     Ok((true, reason))
@@ -117,9 +115,7 @@ pub fn detect_tool_failure(payload: &Value) -> (bool, String, Option<i64>) {
                 || lower.contains("command not found")
                 || lower.contains("permission denied")
             {
-                let code = payload
-                    .get("exit_code")
-                    .and_then(|v| v.as_i64());
+                let code = payload.get("exit_code").and_then(|v| v.as_i64());
                 return (false, val.to_string(), code);
             }
         }
@@ -191,7 +187,7 @@ mod tests {
     fn loop_breaker_blocks_after_two_failures() {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
-        std::fs::create_dir_all(root.join(crate::KEEL_DIR)).unwrap();
+        std::fs::create_dir_all(root.join(crate::REPOVOW_DIR)).unwrap();
         crate::state::init_config(Some(root)).unwrap();
 
         let tool = "Bash";

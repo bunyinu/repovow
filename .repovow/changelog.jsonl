@@ -1,0 +1,3 @@
+{"at": "2026-06-21T22:01:47+00:00", "event": "goal_set", "title": "Test OAuth"}
+{"at": "2026-06-21T22:02:00+00:00", "event": "session_start", "agent": "claude", "source": "unknown"}
+{"at":"2026-06-21T22:31:47Z","event":"goal_set","title":"Ship RepoVow distribution"}

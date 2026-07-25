@@ -56,5 +56,5 @@ jobs:
       - name: Build and stage npm packages
         run: ./scripts/stage-npm.sh
 
-      - name: Validate keel.js resolves binary
-        run: node npm/keel-cli/scripts/verify-shim.js
+      - name: Validate repovow.js resolves binary
+        run: node npm/repovow-cli/scripts/verify-shim.js

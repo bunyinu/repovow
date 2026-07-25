@@ -1,7 +1,7 @@
 {
-  "name": "@keel2026/darwin-arm64",
-  "version": "0.4.1",
-  "description": "Keel native binary for macOS arm64",
+  "name": "repovow-darwin-arm64",
+  "version": "0.5.0",
+  "description": "RepoVow native binary for macOS arm64",
   "license": "Apache-2.0",
   "os": [
     "darwin"
@@ -10,9 +10,6 @@
     "arm64"
   ],
   "files": [
-    "bin/keel"
-  ],
-  "bin": {
-    "keel": "bin/keel"
-  }
+    "bin/repovow"
+  ]
 }

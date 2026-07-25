@@ -2,9 +2,9 @@ use anyhow::{bail, Result};
 use std::path::Path;
 
 use crate::goal_edit::{save_goal, GoalForm};
-use crate::install::install;
+use crate::install::install_for_user;
 
-/// `keel onboard` — init + set goal in one step (avoids empty `.keel`).
+/// `repovow onboard` — init + set goal in one step (avoids empty `.repovow`).
 pub fn run_onboard(
     title: &str,
     accept: Vec<String>,
@@ -16,11 +16,11 @@ pub fn run_onboard(
     if title.is_empty() {
         bail!(
             "Goal title is required.\n\nExample:\n  \
-             keel onboard \"Ship auth\" --accept \"tests pass\" --step \"scaffold routes\""
+             repovow onboard \"Ship auth\" --accept \"tests pass\" --step \"scaffold routes\""
         );
     }
 
-    let project = install(root)?;
+    let project = install_for_user(root)?;
     let form = GoalForm {
         title: title.to_string(),
         step: step.unwrap_or_default(),
@@ -29,10 +29,10 @@ pub fn run_onboard(
     };
     save_goal(&form, Some(&project), "onboard")?;
 
-    println!("Keel onboard complete in {}", project.display());
+    println!("RepoVow onboard complete in {}", project.display());
     println!("Goal: {title}");
-    println!("Hooks: .claude/ · .codex/ · .cursor/");
-    println!("State: {}/snapshot.md", project.join(".keel").display());
-    println!("\nNext: open Claude Code, Codex, or Cursor in this repo — goal survives compaction.");
+    println!("Hooks: persistent Claude/Codex routers + project-local fallback hooks");
+    println!("State: {}/snapshot.md", project.join(".repovow").display());
+    println!("\nClaude applies the router live. RepoVow registers trust for its own Codex hooks; new projects then activate without per-repository setup.");
     Ok(())
 }

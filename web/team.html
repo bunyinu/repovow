@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Keel — Team dashboard</title>
+  <title>RepoVow — Team dashboard</title>
   <style>
     :root { font-family: system-ui, sans-serif; background: #0f1419; color: #e7ecf3; }
     body { max-width: 900px; margin: 0 auto; padding: 2rem 1rem; }
@@ -31,10 +31,10 @@
 <body>
   <nav><a href="/">Home</a><a href="/start">Account</a><a href="/pricing">Pricing</a></nav>
   <h1>Team dashboard</h1>
-  <p class="meta">Fleet view: active agent goals across repos (Keel Team / Pro).</p>
+  <p class="meta">Fleet view: active agent goals across repos (RepoVow Team / Pro).</p>
 
   <label for="team-license">Team license</label>
-  <input id="team-license" type="password" placeholder="keel_team_..." />
+  <input id="team-license" type="password" placeholder="repovow_team_..." />
   <button type="button" id="load">Load projects</button>
   <a class="btn secondary" href="/pricing">Upgrade to Pro</a>
 
@@ -44,15 +44,10 @@
 
   <script>
     const keyInput = document.getElementById("team-license");
-    const saved = localStorage.getItem("keel_team");
-    if (saved) {
-      try { keyInput.value = JSON.parse(saved).license || ""; } catch (_) {}
-    }
 
     async function load() {
       const key = keyInput.value.trim();
       if (!key) return;
-      localStorage.setItem("keel_team", JSON.stringify({ license: key }));
       const res = await fetch("/api/teams/projects", {
         headers: { Authorization: "Bearer " + key },
       });
@@ -86,7 +81,6 @@
     }
 
     document.getElementById("load").onclick = load;
-    if (keyInput.value) load();
   </script>
 </body>
 </html>

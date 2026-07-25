@@ -1,0 +1,32 @@
+{
+  "compactions": 0,
+  "decisions": [],
+  "goal": {
+    "acceptance": [
+      "CI passes",
+      "npm shim works",
+      "hooks use PATH repovow"
+    ],
+    "constraints": [],
+    "started_at": "2026-06-21T22:31:47Z",
+    "title": "Ship RepoVow distribution"
+  },
+  "last_agent": "claude",
+  "progress": {
+    "blockers": [],
+    "completed": [
+      "implemented budgeted context packets, compaction deduplication, and working-set tracking",
+      "embedded compact-first skill and quality-reserved section retrieval",
+      "Ran reproducible 2x2 large-repository benchmark: Codex RepoVow treatment reduced gross input 20.5% at equal quality; Claude treatment increased gross input 8.6%, exposing 34 duplicate policy warnings and one full snapshot reread",
+      "V2 2x2 benchmark verified token efficiency at equal hidden quality: Codex gross input -23.0%, fresh -15.8%, time -11.0%; Claude gross input -27.0%, fresh -33.3%, time -26.7%, cost -28.4%; zero Claude snapshot reads or policy warnings",
+      "Installed persistent Claude/Codex hook routers with hot project activation, one-time mid-session context delivery, safe no-op outside .repovow, and duplicate-event suppression",
+      "Added zero-command agent bootstrap: npm installs global routers, Git repos initialize on agent events, and the first prompt creates goal plus acceptance context automatically",
+      "Validated zero-touch Claude and Codex activation on fresh repositories; fixed Codex hook trust registration; 41 unit and 17 integration tests pass; report written to /home/lus/repovow-real-proof/zero-touch-new-project-test/REPORT.md"
+    ],
+    "current_step": "Repeat benchmark across diverse repositories before broad product claims"
+  },
+  "recent_files": [],
+  "sessions": 1,
+  "updated_at": "2026-07-25T21:40:56Z",
+  "version": 1
+}

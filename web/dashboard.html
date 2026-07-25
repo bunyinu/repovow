@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Keel — Dashboard</title>
+  <title>RepoVow — Dashboard</title>
   <link rel="stylesheet" href="/site.css?v=20260625" />
 </head>
 <body>
   <header class="site-header">
-    <a class="logo" href="/">Keel</a>
+    <a class="logo" href="/">RepoVow</a>
     <nav>
       <a href="/">Home</a>
       <a href="/account">Account</a>
@@ -16,15 +16,6 @@
       <a href="/trust">Trust</a>
     </nav>
   </header>
-
-  <div id="key-banner" class="key-banner" style="display:none">
-    <div class="page-wide">
-      <strong>Save your project access key</strong> — shown once.
-      <pre id="key-banner-value"></pre>
-      <button type="button" class="btn secondary" id="copy-key">Copy</button>
-      <button type="button" class="btn secondary" id="dismiss-key">Got it</button>
-    </div>
-  </div>
 
   <main class="page-wide" id="content" style="display:none">
     <div class="dash-header">
@@ -77,20 +68,11 @@
   <script src="/app.js"></script>
   <script>
     const projectId = "__PROJECT_ID__";
-    const storageKey = "keel_api_key_" + projectId;
     const startUrl = "/start?link=" + encodeURIComponent(projectId);
 
     async function load() {
-      const key = localStorage.getItem(storageKey);
-      if (!key) {
-        location.replace(startUrl);
-        return;
-      }
-      const res = await fetch("/api/projects/" + projectId, {
-        headers: { Authorization: "Bearer " + key },
-      });
+      const res = await fetch("/api/projects/" + projectId);
       if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem(storageKey);
         location.replace(startUrl);
         return;
       }
@@ -106,33 +88,21 @@
       document.getElementById("content").style.display = "block";
       document.getElementById("title").textContent = data.name || "Project";
       document.getElementById("updated").textContent = "updated " + (data.updated_at || "never");
-      document.getElementById("badges").innerHTML = KeelUI.policyBadge(data.policy || {});
-      document.getElementById("onboarding").innerHTML = KeelUI.renderOnboarding(data);
+      document.getElementById("badges").innerHTML = RepoVowUI.policyBadge(data.policy || {});
+      document.getElementById("onboarding").innerHTML = RepoVowUI.renderOnboarding(data);
       document.getElementById("policy-detail").innerHTML =
-        `<p>${KeelUI.policyBadge(data.policy || {})}</p>` +
-        `<p class="muted small">${KeelUI.escapeHtml((data.policy && data.policy.detail) || "Policy syncs when CLI pushes state.")}</p>`;
-      document.getElementById("changelog").innerHTML = KeelUI.renderChangelog(data.changelog);
-      document.getElementById("snapshot").innerHTML = KeelUI.renderSnapshotSections(data.snapshot);
+        `<p>${RepoVowUI.policyBadge(data.policy || {})}</p>` +
+        `<p class="muted small">${RepoVowUI.escapeHtml((data.policy && data.policy.detail) || "Policy syncs when CLI pushes state.")}</p>`;
+      document.getElementById("changelog").innerHTML = RepoVowUI.renderChangelog(data.changelog);
+      document.getElementById("snapshot").innerHTML = RepoVowUI.renderSnapshotSections(data.snapshot);
 
       const base = location.origin;
       const cmd =
-        "npm install -g @keel2026/cli\n" +
-        "keel cloud link --url " + base + " --project " + projectId + " --key " + key + "\n" +
-        'keel onboard "your task" --accept "tests pass"';
+        "npm install -g repovow\n" +
+        "repovow cloud link --url " + base + " --project " + projectId + " --key <project-access-key>\n" +
+        'repovow onboard "your task" --accept "tests pass"';
       document.getElementById("connect-cmd").textContent = cmd;
-      document.getElementById("connect-copy").innerHTML = KeelUI.copyButton(cmd, "Copy commands");
-
-      const onceKey = sessionStorage.getItem("keel_show_key");
-      if (onceKey) {
-        const banner = document.getElementById("key-banner");
-        document.getElementById("key-banner-value").textContent = onceKey;
-        banner.style.display = "block";
-        document.getElementById("copy-key").onclick = () => navigator.clipboard.writeText(onceKey);
-        document.getElementById("dismiss-key").onclick = () => {
-          sessionStorage.removeItem("keel_show_key");
-          banner.style.display = "none";
-        };
-      }
+      document.getElementById("connect-copy").innerHTML = RepoVowUI.copyButton(cmd, "Copy commands");
     }
     load();
   </script>

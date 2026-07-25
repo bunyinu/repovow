@@ -1,0 +1,37 @@
+{
+  "name": "repovow",
+  "version": "0.5.0",
+  "description": "Repo-local agent state for Claude Code, Codex, and Cursor",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bunyinu/repovow.git"
+  },
+  "keywords": [
+    "claude-code",
+    "codex",
+    "ai-agent",
+    "hooks",
+    "mcp"
+  ],
+  "bin": {
+    "repovow": "./bin/repovow.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "files": [
+    "bin",
+    "scripts",
+    "vendor"
+  ],
+  "optionalDependencies": {
+    "repovow-linux-x64-gnu": "0.5.0",
+    "repovow-linux-arm64-gnu": "0.5.0",
+    "repovow-darwin-x64": "0.5.0",
+    "repovow-darwin-arm64": "0.5.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

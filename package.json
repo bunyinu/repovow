@@ -1,13 +1,13 @@
 {
-  "name": "keel-agent",
+  "name": "repovow-agent",
   "private": true,
-  "description": "Keel monorepo — Rust CLI + npm distribution",
+  "description": "RepoVow monorepo — Rust CLI + npm distribution",
   "scripts": {
     "test": "cargo test --all-targets",
     "build": "cargo build --release",
     "stage": "./scripts/stage-npm.sh",
     "release": "./scripts/release.sh",
     "install:global": "./scripts/release.sh --install-global",
-    "verify:shim": "node npm/keel-cli/scripts/verify-shim.js"
+    "verify:shim": "node npm/repovow-cli/scripts/verify-shim.js"
   }
 }

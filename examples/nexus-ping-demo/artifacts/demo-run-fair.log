@@ -1,30 +1,30 @@
 ============================================================
-  NEXUS-PING — Claude /compact: Keel vs no Keel
+  NEXUS-PING — Claude /compact: RepoVow vs no RepoVow
   Secret port: 7429 (not in README)
-  Keel: keel 0.4.1
+  RepoVow: repovow 0.4.1
 ============================================================
 
 >>> Twin repos under /tmp/nexus-ping-demo-4059637
 
->>> WITHOUT KEEL (normal Claude project — no keel init)
-  ✓ no .keel
-  ✓ .claude/settings.json (no Keel hooks)
+>>> WITHOUT REPOVOW (normal Claude project — no repovow init)
+  ✓ no .repovow
+  ✓ .claude/settings.json (no RepoVow hooks)
   ✓ CLAUDE.md (generic — secret port not documented)
 
->>> WITH KEEL
-Keel v0.4.1 initialized in /tmp/nexus-ping-demo-4059637/with-keel/.keel
+>>> WITH REPOVOW
+RepoVow v0.4.1 initialized in /tmp/nexus-ping-demo-4059637/with-repovow/.repovow
 Hooks installed for Claude Code, Codex, and Cursor
-Next: keel onboard "your task" --accept "criterion 1"
-     or: keel goal set "..." / keel tui
-Moat: keel policy init  (signed goals — hooks block tampered policy)
+Next: repovow onboard "your task" --accept "criterion 1"
+     or: repovow goal set "..." / repovow tui
+Moat: repovow policy init  (signed goals — hooks block tampered policy)
 Goal set: Build nexus-ping health API on port 7429 only
 Recorded decision: Port 7429 is fixed — do not switch to 3000 after compact
 
---- .keel/snapshot.md (injected on compact) ---
-# Keel state snapshot
+--- .repovow/snapshot.md (injected on compact) ---
+# RepoVow state snapshot
 
 _Agent-written progress and failures below are **not** cryptographically signed._
-_Trusted goal policy (title, acceptance, constraints): read `.keel/policy.md` and verify with `keel policy verify`._
+_Trusted goal policy (title, acceptance, constraints): read `.repovow/policy.md` and verify with `repovow policy verify`._
 
 _Compactions: 0 · Sessions: 0 · Last agent: unknown_
 
@@ -49,10 +49,10 @@ Read this file at session start and after every compaction. Do not repeat failed
 
 
 ============================================================
-  ARM: without-keel
-  /tmp/nexus-ping-demo-4059637/without-keel
+  ARM: without-repovow
+  /tmp/nexus-ping-demo-4059637/without-repovow
 ============================================================
-(CLAUDE.md + .claude present, but no keel init → no .keel, no PreCompact hook)
+(CLAUDE.md + .claude present, but no repovow init → no .repovow, no PreCompact hook)
 
 --- Phase 1: implement server.js ---
 session_id=2d5e1722-defa-4aaf-9983-21ef07041763
@@ -60,25 +60,25 @@ session_id=2d5e1722-defa-4aaf-9983-21ef07041763
 --- Phase 2: Claude Code /compact (forced) ---
     Same as typing /compact in the Claude agent — claude -p --resume <session>
   Claude compaction: session_id=2d5e1722… turns=0 (0 = compact ran, not a chat turn)
-  No Keel PreCompact hook (keel init not run) → Claude /compact has no goal reinjection
+  No RepoVow PreCompact hook (repovow init not run) → Claude /compact has no goal reinjection
 
 --- Phase 3: recall WITHOUT reading files first ---
 I can't honestly fill in those values — none of them exist in my context.
 
 ```
-PORT=UNKNOWN (never provided; not in CLAUDE.md, README.md, package.json; no .keel/snapshot.md to recover it)
+PORT=UNKNOWN (never provided; not in CLAUDE.md, README.md, package.json; no .repovow/snapshot.md to recover it)
 JSON=UNKNOWN (health-response shape was never specified)
 CONSTRAINTS=do not invent ports — real spec lives in external team docs, not this repo (CLAUDE.md)
 ```
 
 On the second step: there's nothing to read or fix — `server.js` was never created. It's blocked on the same missing port, and CLAUDE.md forbids inventing one.
 
-This is the expected "without-keel" outcome: the spec lives in external team docs, the local `.keel/snapshot.md` that would have captured it is absent, so the port didn't survive compaction and I have nothing to recall. To unblock, give me the port (and ideally the JSON shape) or a doc I can fetch, and I'll write both files without starting the server.
+This is the expected "without-repovow" outcome: the spec lives in external team docs, the local `.repovow/snapshot.md` that would have captured it is absent, so the port didn't survive compaction and I have nothing to recall. To unblock, give me the port (and ideally the JSON shape) or a doc I can fetch, and I'll write both files without starting the server.
 
 ============================================================
-  ARM: with-keel
-  /tmp/nexus-ping-demo-4059637/with-keel
+  ARM: with-repovow
+  /tmp/nexus-ping-demo-4059637/with-repovow
 ============================================================
-(keel init → .keel goal + PreCompact hook reinjects snapshot.md on /compact)
+(repovow init → .repovow goal + PreCompact hook reinjects snapshot.md on /compact)
 
 --- Phase 1: implement server.js ---

@@ -4,10 +4,10 @@ use serde_json::json;
 use std::path::Path;
 
 use crate::cloud::push_state;
-use crate::paths::{ensure_keel_dir, utcnow};
+use crate::paths::{ensure_repovow_dir, utcnow};
 use crate::policy;
 use crate::snapshot::write_snapshot;
-use crate::state::{load_state, log_event, save_state, Goal, KeelState};
+use crate::state::{load_state, log_event, save_state, Goal, RepoVowState};
 
 /// Shared goal form used by CLI, TUI, and web API.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -22,15 +22,11 @@ pub struct GoalForm {
 }
 
 impl GoalForm {
-    pub fn from_state(state: &KeelState) -> Self {
+    pub fn from_state(state: &RepoVowState) -> Self {
         let goal = state.goal.as_ref();
         Self {
             title: goal.map(|g| g.title.clone()).unwrap_or_default(),
-            step: state
-                .progress
-                .current_step
-                .clone()
-                .unwrap_or_default(),
+            step: state.progress.current_step.clone().unwrap_or_default(),
             acceptance: goal.map(|g| g.acceptance.clone()).unwrap_or_default(),
             constraints: goal.map(|g| g.constraints.clone()).unwrap_or_default(),
         }
@@ -45,7 +41,7 @@ impl GoalForm {
     }
 }
 
-pub fn apply_form(state: &mut KeelState, form: &GoalForm) {
+pub fn apply_form(state: &mut RepoVowState, form: &GoalForm) {
     let title = form.title.trim();
     if title.is_empty() {
         state.goal = None;
@@ -72,7 +68,7 @@ pub fn apply_form(state: &mut KeelState, form: &GoalForm) {
 
 /// Save goal from any UI (CLI / TUI / web) and sync snapshot + cloud.
 pub fn save_goal(form: &GoalForm, root: Option<&Path>, source: &str) -> Result<()> {
-    ensure_keel_dir(root)?;
+    ensure_repovow_dir(root)?;
     let title = form.title.trim();
     if title.is_empty() {
         anyhow::bail!("goal title is required");
@@ -84,27 +80,23 @@ pub fn save_goal(form: &GoalForm, root: Option<&Path>, source: &str) -> Result<(
     policy::after_goal_change(root)?;
     write_snapshot(root)?;
     let _ = push_state(root);
-    log_event(
-        root,
-        "goal_set",
-        json!({"title": title, "source": source}),
-    )?;
+    log_event(root, "goal_set", json!({"title": title, "source": source}))?;
     Ok(())
 }
 
 pub fn load_form(root: Option<&Path>) -> Result<GoalForm> {
-    ensure_keel_dir(root).context("run `keel init` first")?;
+    ensure_repovow_dir(root).context("run `repovow init` first")?;
     Ok(GoalForm::from_state(&load_state(root)?))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::KeelState;
+    use crate::state::RepoVowState;
 
     #[test]
     fn apply_form_sets_goal_and_step() {
-        let mut state = KeelState::default();
+        let mut state = RepoVowState::default();
         let form = GoalForm {
             title: "Ship feature".into(),
             step: "write tests".into(),
@@ -113,9 +105,6 @@ mod tests {
         };
         apply_form(&mut state, &form);
         assert_eq!(state.goal.as_ref().unwrap().title, "Ship feature");
-        assert_eq!(
-            state.progress.current_step.as_deref(),
-            Some("write tests")
-        );
+        assert_eq!(state.progress.current_step.as_deref(), Some("write tests"));
     }
 }

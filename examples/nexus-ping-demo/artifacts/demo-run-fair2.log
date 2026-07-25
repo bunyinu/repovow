@@ -1,30 +1,30 @@
 ============================================================
-  NEXUS-PING — Claude /compact: Keel vs no Keel
+  NEXUS-PING — Claude /compact: RepoVow vs no RepoVow
   Secret port: 7429 (not in README)
-  Keel: keel 0.4.1
+  RepoVow: repovow 0.4.1
 ============================================================
 
 >>> Twin repos under /tmp/nexus-ping-demo-4063610
 
->>> WITHOUT KEEL (normal Claude project — no keel init)
-  ✓ no .keel
-  ✓ .claude/settings.json (no Keel hooks)
+>>> WITHOUT REPOVOW (normal Claude project — no repovow init)
+  ✓ no .repovow
+  ✓ .claude/settings.json (no RepoVow hooks)
   ✓ CLAUDE.md (generic — secret port not documented)
 
->>> WITH KEEL
-Keel v0.4.1 initialized in /tmp/nexus-ping-demo-4063610/with-keel/.keel
+>>> WITH REPOVOW
+RepoVow v0.4.1 initialized in /tmp/nexus-ping-demo-4063610/with-repovow/.repovow
 Hooks installed for Claude Code, Codex, and Cursor
-Next: keel onboard "your task" --accept "criterion 1"
-     or: keel goal set "..." / keel tui
-Moat: keel policy init  (signed goals — hooks block tampered policy)
+Next: repovow onboard "your task" --accept "criterion 1"
+     or: repovow goal set "..." / repovow tui
+Moat: repovow policy init  (signed goals — hooks block tampered policy)
 Goal set: Build nexus-ping health API on port 7429 only
 Recorded decision: Port 7429 is fixed — do not switch to 3000 after compact
 
---- .keel/snapshot.md (injected on compact) ---
-# Keel state snapshot
+--- .repovow/snapshot.md (injected on compact) ---
+# RepoVow state snapshot
 
 _Agent-written progress and failures below are **not** cryptographically signed._
-_Trusted goal policy (title, acceptance, constraints): read `.keel/policy.md` and verify with `keel policy verify`._
+_Trusted goal policy (title, acceptance, constraints): read `.repovow/policy.md` and verify with `repovow policy verify`._
 
 _Compactions: 0 · Sessions: 0 · Last agent: unknown_
 
@@ -49,9 +49,9 @@ Read this file at session start and after every compaction. Do not repeat failed
 
 
 ============================================================
-  ARM: without-keel
-  /tmp/nexus-ping-demo-4063610/without-keel
+  ARM: without-repovow
+  /tmp/nexus-ping-demo-4063610/without-repovow
 ============================================================
-(CLAUDE.md + .claude present, but no keel init → no .keel, no PreCompact hook)
+(CLAUDE.md + .claude present, but no repovow init → no .repovow, no PreCompact hook)
 
 --- Phase 1: implement server.js ---

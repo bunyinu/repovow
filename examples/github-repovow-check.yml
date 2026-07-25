@@ -1,0 +1,18 @@
+# Copy to .github/workflows/repovow-check.yml
+# Requires: repovow on PATH (npm install -g repovow) + repovow init in repo
+name: RepoVow
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  repovow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install -g repovow
+      - run: repovow check

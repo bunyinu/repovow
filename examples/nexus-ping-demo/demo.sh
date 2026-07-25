@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Twin-repo: Claude Code with forced /compact — with Keel vs without.
+# Twin-repo: Claude Code with forced /compact — with RepoVow vs without.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-export KEEL="${KEEL:-$(command -v keel)}"
+export REPOVOW="${REPOVOW:-$(command -v repovow)}"
 export BASE="${BASE:-/tmp/nexus-ping-demo-$$}"
 export RESULTS="$BASE/results"
 export TERM="${TERM:-xterm-256color}"
@@ -12,14 +12,14 @@ SECRET_PORT=7429
 
 clear 2>/dev/null || true
 echo "============================================================"
-echo "  NEXUS-PING — Claude /compact: Keel vs no Keel"
+echo "  NEXUS-PING — Claude /compact: RepoVow vs no RepoVow"
 echo "  Secret port: $SECRET_PORT (not in README)"
-echo "  Keel: $("$KEEL" --version 2>/dev/null || echo missing)"
+echo "  RepoVow: $("$REPOVOW" --version 2>/dev/null || echo missing)"
 echo "============================================================"
 echo ""
 sleep 1
 
-rm -rf "$BASE/without-keel" "$BASE/with-keel" "$RESULTS"
+rm -rf "$BASE/without-repovow" "$BASE/with-repovow" "$RESULTS"
 mkdir -p "$RESULTS"
 
 setup_project() {
@@ -27,8 +27,8 @@ setup_project() {
   mkdir -p "$dir"
   cd "$dir"
   git init -q
-  git config user.email "demo@keel.test"
-  git config user.name "Keel Demo"
+  git config user.email "demo@repovow.test"
+  git config user.name "RepoVow Demo"
   cat > package.json <<'EOF'
 {"name":"nexus-ping","version":"1.0.0","type":"module","scripts":{"start":"node server.js","test":"node test.js"}}
 EOF
@@ -56,28 +56,28 @@ EOF
 }
 
 echo ">>> Twin repos under $BASE"
-setup_project "$BASE/without-keel"
-setup_project "$BASE/with-keel"
+setup_project "$BASE/without-repovow"
+setup_project "$BASE/with-repovow"
 
 echo ""
-echo ">>> WITHOUT KEEL (normal Claude project — no keel init)"
-test ! -d "$BASE/without-keel/.keel" && echo "  ✓ no .keel"
-test -f "$BASE/without-keel/.claude/settings.json" && echo "  ✓ .claude/settings.json (no Keel hooks)"
-test -f "$BASE/without-keel/CLAUDE.md" && echo "  ✓ CLAUDE.md (generic — secret port not documented)"
+echo ">>> WITHOUT REPOVOW (normal Claude project — no repovow init)"
+test ! -d "$BASE/without-repovow/.repovow" && echo "  ✓ no .repovow"
+test -f "$BASE/without-repovow/.claude/settings.json" && echo "  ✓ .claude/settings.json (no RepoVow hooks)"
+test -f "$BASE/without-repovow/CLAUDE.md" && echo "  ✓ CLAUDE.md (generic — secret port not documented)"
 
 echo ""
-echo ">>> WITH KEEL"
-cd "$BASE/with-keel"
-"$KEEL" init
-"$KEEL" goal set "Build nexus-ping health API on port $SECRET_PORT only" \
+echo ">>> WITH REPOVOW"
+cd "$BASE/with-repovow"
+"$REPOVOW" init
+"$REPOVOW" goal set "Build nexus-ping health API on port $SECRET_PORT only" \
   --accept "server listens ONLY on port $SECRET_PORT" \
   --accept "GET / returns {\"nexus\":\"online\",\"ping\":true}" \
   --constraint "never use port 3000, 8080, or 8000" \
   --step "implement server.js"
-"$KEEL" decide "Port $SECRET_PORT is fixed — do not switch to 3000 after compact"
+"$REPOVOW" decide "Port $SECRET_PORT is fixed — do not switch to 3000 after compact"
 echo ""
-echo "--- .keel/snapshot.md (injected on compact) ---"
-head -25 .keel/snapshot.md
+echo "--- .repovow/snapshot.md (injected on compact) ---"
+head -25 .repovow/snapshot.md
 echo ""
 sleep 2
 
@@ -94,10 +94,10 @@ run_arm() {
   echo "  $(pwd)"
   echo "============================================================"
 
-  if [[ "$name" == "without-keel" ]]; then
-    echo "(CLAUDE.md + .claude present, but no keel init → no .keel, no PreCompact hook)"
+  if [[ "$name" == "without-repovow" ]]; then
+    echo "(CLAUDE.md + .claude present, but no repovow init → no .repovow, no PreCompact hook)"
   else
-    echo "(keel init → .keel goal + PreCompact hook reinjects snapshot.md on /compact)"
+    echo "(repovow init → .repovow goal + PreCompact hook reinjects snapshot.md on /compact)"
   fi
 
   echo ""
@@ -106,7 +106,7 @@ run_arm() {
     --permission-mode bypassPermissions \
     --allowedTools "Read,Write,Edit,Bash" \
     --output-format json \
-    "Implement server.js and test.js for nexus-ping (minimal HTTP health API). Read CLAUDE.md and .keel/snapshot.md if present. Use the correct port from project requirements. Do not start the server. Brief reply." \
+    "Implement server.js and test.js for nexus-ping (minimal HTTP health API). Read CLAUDE.md and .repovow/snapshot.md if present. Use the correct port from project requirements. Do not start the server. Brief reply." \
     > "$out/phase1.json" 2>"$out/phase1.stderr"
 
   SESSION=$(python3 -c "import json; print(json.load(open('$out/phase1.json'))['session_id'])")
@@ -134,12 +134,12 @@ p = json.load(open("$out/phase2.json"))
 print(f"  Claude compaction: session_id={p.get('session_id','?')[:8]}… turns={p.get('num_turns')} (0 = compact ran, not a chat turn)")
 PY
 
-  if [[ -f .keel/changelog.jsonl ]]; then
-    echo "  Keel hook audit (.keel/changelog.jsonl):"
-    rg '"pre_compact"|"post_compact"|"source":"compact"' .keel/changelog.jsonl | tail -5 | sed 's/^/    /'
-    echo "  Keel compactions counter: $(python3 -c "import json; print(json.load(open('.keel/state.json'))['compactions'])")"
+  if [[ -f .repovow/changelog.jsonl ]]; then
+    echo "  RepoVow hook audit (.repovow/changelog.jsonl):"
+    rg '"pre_compact"|"post_compact"|"source":"compact"' .repovow/changelog.jsonl | tail -5 | sed 's/^/    /'
+    echo "  RepoVow compactions counter: $(python3 -c "import json; print(json.load(open('.repovow/state.json'))['compactions'])")"
   else
-    echo "  No Keel PreCompact hook (keel init not run) → Claude /compact has no goal reinjection"
+    echo "  No RepoVow PreCompact hook (repovow init not run) → Claude /compact has no goal reinjection"
   fi
   sleep 1
 
@@ -163,14 +163,14 @@ PY
   sleep 2
 }
 
-run_arm "without-keel" "$BASE/without-keel"
-run_arm "with-keel" "$BASE/with-keel"
+run_arm "without-repovow" "$BASE/without-repovow"
+run_arm "with-repovow" "$BASE/with-repovow"
 
 echo ""
 echo "============================================================"
 echo "  VERDICT (secret port $SECRET_PORT)"
 echo "============================================================"
-for arm in without-keel with-keel; do
+for arm in without-repovow with-repovow; do
   echo ""
   echo "### $arm ###"
   echo "Recall (first lines):"

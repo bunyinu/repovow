@@ -1,29 +1,29 @@
 ============================================================
-  NEXUS-PING — Keel vs no Keel (forced /compact)
+  NEXUS-PING — RepoVow vs no RepoVow (forced /compact)
   Secret port: 7429 (not in README)
-  Keel: keel 0.4.1
+  RepoVow: repovow 0.4.1
 ============================================================
 
 >>> Twin repos under /tmp/nexus-ping-demo-4026155
 
->>> WITHOUT KEEL (plain repo)
-  ✓ no .keel
+>>> WITHOUT REPOVOW (plain repo)
+  ✓ no .repovow
   ✓ no agent hooks dir
 
->>> WITH KEEL
-Keel v0.4.1 initialized in /tmp/nexus-ping-demo-4026155/with-keel/.keel
+>>> WITH REPOVOW
+RepoVow v0.4.1 initialized in /tmp/nexus-ping-demo-4026155/with-repovow/.repovow
 Hooks installed for Claude Code, Codex, and Cursor
-Next: keel onboard "your task" --accept "criterion 1"
-     or: keel goal set "..." / keel tui
-Moat: keel policy init  (signed goals — hooks block tampered policy)
+Next: repovow onboard "your task" --accept "criterion 1"
+     or: repovow goal set "..." / repovow tui
+Moat: repovow policy init  (signed goals — hooks block tampered policy)
 Goal set: Build nexus-ping health API on port 7429 only
 Recorded decision: Port 7429 is fixed — do not switch to 3000 after compact
 
---- .keel/snapshot.md (injected on compact) ---
-# Keel state snapshot
+--- .repovow/snapshot.md (injected on compact) ---
+# RepoVow state snapshot
 
 _Agent-written progress and failures below are **not** cryptographically signed._
-_Trusted goal policy (title, acceptance, constraints): read `.keel/policy.md` and verify with `keel policy verify`._
+_Trusted goal policy (title, acceptance, constraints): read `.repovow/policy.md` and verify with `repovow policy verify`._
 
 _Compactions: 0 · Sessions: 0 · Last agent: unknown_
 
@@ -48,8 +48,8 @@ Read this file at session start and after every compaction. Do not repeat failed
 
 
 ============================================================
-  ARM: without-keel
-  /tmp/nexus-ping-demo-4026155/without-keel
+  ARM: without-repovow
+  /tmp/nexus-ping-demo-4026155/without-repovow
 ============================================================
 (claude --bare: no hooks, no CLAUDE.md injection)
 

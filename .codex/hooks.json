@@ -4,8 +4,8 @@
       {
         "hooks": [
           {
-            "command": "/home/lus/.local/bin/keel hook post-compact --agent codex",
-            "statusMessage": "Keel: restoring state after compaction",
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook post-compact --agent codex",
+            "statusMessage": "RepoVow: restoring state after compaction",
             "timeout": 15,
             "type": "command"
           }
@@ -17,7 +17,7 @@
       {
         "hooks": [
           {
-            "command": "/home/lus/.local/bin/keel hook post-tool-use --agent codex",
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook post-tool-use --agent codex",
             "timeout": 10,
             "type": "command"
           }
@@ -29,8 +29,8 @@
       {
         "hooks": [
           {
-            "command": "/home/lus/.local/bin/keel hook pre-compact --agent codex",
-            "statusMessage": "Keel: saving state before compaction",
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook pre-compact --agent codex",
+            "statusMessage": "RepoVow: saving state before compaction",
             "timeout": 15,
             "type": "command"
           }
@@ -42,8 +42,8 @@
       {
         "hooks": [
           {
-            "command": "/home/lus/.local/bin/keel hook pre-tool-use --agent codex",
-            "statusMessage": "Keel: checking retry loop",
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook pre-tool-use --agent codex",
+            "statusMessage": "RepoVow: checking retry loop",
             "timeout": 10,
             "type": "command"
           }
@@ -55,8 +55,8 @@
       {
         "hooks": [
           {
-            "command": "/home/lus/.local/bin/keel hook session-start --agent codex",
-            "statusMessage": "Keel: loading session state",
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook session-start --agent codex",
+            "statusMessage": "RepoVow: loading session state",
             "timeout": 15,
             "type": "command"
           }
@@ -64,11 +64,23 @@
         "matcher": "startup|resume|clear|compact"
       }
     ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook stop --agent codex",
+            "statusMessage": "RepoVow: running acceptance gate",
+            "timeout": 120,
+            "type": "command"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
           {
-            "command": "/home/lus/.local/bin/keel hook user-prompt-submit --agent codex",
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook user-prompt-submit --agent codex",
             "timeout": 5,
             "type": "command"
           }

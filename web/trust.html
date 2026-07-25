@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Keel — Trust &amp; security</title>
+  <title>RepoVow — Trust &amp; security</title>
   <link rel="stylesheet" href="/site.css?v=20260625" />
 </head>
 <body>
   <header class="site-header">
-    <a class="logo" href="/">Keel</a>
+    <a class="logo" href="/">RepoVow</a>
     <nav>
       <a href="/">Home</a>
       <a href="/start">Account</a>
@@ -21,13 +21,13 @@
   <main class="page page-prose prose">
     <div class="page-header">
       <h1>Trust &amp; security</h1>
-      <p class="lead">Keel is repo-local agent state. Your goals live in <code>.keel/</code> in your repository — not in our training data.</p>
+      <p class="lead">RepoVow is repo-local agent state. Your goals live in <code>.repovow/</code> in your repository — not in our training data.</p>
     </div>
 
     <h2>What we store</h2>
     <ul>
       <li><strong>Local (default):</strong> <code>state.json</code>, <code>snapshot.md</code>, hook logs — on your machine, in your repo.</li>
-      <li><strong>Keel Cloud (optional):</strong> If you run <code>keel cloud link</code>, we store your project state and snapshot to sync across machines. You control the API key.</li>
+      <li><strong>RepoVow Cloud (optional):</strong> If you run <code>repovow cloud link</code>, we store your project state and snapshot to sync across machines. You control the API key.</li>
     </ul>
 
     <h2>What we do not do</h2>
@@ -38,11 +38,11 @@
     </ul>
 
     <h2>Hooks &amp; enforcement</h2>
-    <p>Keel hooks can <strong>block</strong> tool use (dependency installs, edits in read-only mode) and <strong>block session end</strong> until an acceptance command passes. Review <code>.claude/settings.json</code>, <code>.codex/hooks.json</code>, and <code>.cursor/hooks.json</code> after <code>keel init</code>.</p>
+    <p>RepoVow hooks can <strong>block</strong> tool use (dependency installs, edits in read-only mode) and <strong>block session end</strong> until an acceptance command passes. Review <code>.claude/settings.json</code>, <code>.codex/hooks.json</code>, and <code>.cursor/hooks.json</code> after <code>repovow init</code>.</p>
 
     <h2>Signed policy (v0.4+)</h2>
-    <p>Keel cryptographically signs the <strong>goal policy</strong> (title, acceptance criteria, constraints). Default algorithm is <strong>ECDSA P-256</strong> (NIST secp256r1).</p>
-    <p><strong>Important:</strong> FIPS-approved <em>algorithm</em> ≠ FIPS 140 <em>validated module</em>. Keel ships pure Rust crypto for portability.</p>
+    <p>RepoVow cryptographically signs the <strong>goal policy</strong> (title, acceptance criteria, constraints). Default algorithm is <strong>ECDSA P-256</strong> (NIST secp256r1).</p>
+    <p><strong>Important:</strong> FIPS-approved <em>algorithm</em> ≠ FIPS 140 <em>validated module</em>. RepoVow ships pure Rust crypto for portability.</p>
     <ul>
       <li><strong>Trusted:</strong> <code>policy.pub</code>, <code>policy.sig</code>, and <code>policy.md</code> (signed goal only).</li>
       <li><strong>Secret:</strong> <code>policy.key</code> — never commit.</li>
@@ -50,27 +50,28 @@
       <li>With <code>policy.mode: required</code>, hooks block all tools if the goal is unsigned or tampered.</li>
     </ul>
 
-    <h2>Keel Cloud access control</h2>
+    <h2>RepoVow Cloud access control</h2>
     <ul>
-      <li>Dashboard URLs only show a login gate until a valid project API key is entered.</li>
-      <li>API reads/writes require <code>Authorization: Bearer &lt;api_key&gt;</code>.</li>
-      <li>Project creation may require server-side <code>KEEL_CREATE_SECRET</code>.</li>
+      <li>Browser access uses an opaque, expiring <code>HttpOnly</code>, <code>SameSite=Strict</code> session cookie. Raw session tokens are not stored.</li>
+      <li>CLI reads and writes require <code>Authorization: Bearer &lt;api_key&gt;</code>.</li>
+      <li>Controlled signup may require a user-supplied code configured through <code>REPOVOW_CREATE_SECRET</code>; the server never renders that value into HTML.</li>
+      <li>Cloud routes are same-origin by default and do not send permissive CORS headers.</li>
     </ul>
 
     <h2>Data deletion</h2>
     <ul>
-      <li><strong>Local:</strong> Delete <code>.keel/</code> and remove Keel hook entries from agent settings.</li>
+      <li><strong>Local:</strong> Delete <code>.repovow/</code> and remove RepoVow hook entries from agent settings.</li>
       <li><strong>Cloud:</strong> Delete the project from your dashboard or contact support for team account deletion.</li>
     </ul>
 
     <h2>Contact</h2>
-    <p>Security issues: open a private issue on <a href="https://github.com/bunyinu/keel">GitHub</a>.</p>
-    <p class="muted small">Last updated: June 2026 · Keel v0.4</p>
+    <p>Security issues: open a private issue on <a href="https://github.com/bunyinu/repovow">GitHub</a>.</p>
+    <p class="muted small">Last updated: July 2026 · RepoVow v0.5</p>
   </main>
 
   <footer class="site-footer">
     <div class="inner">
-      <span class="brand">Keel — agent state in your repo</span>
+      <span class="brand">RepoVow — agent state in your repo</span>
       <nav>
         <a href="/">Home</a>
         <a href="/pricing">Pricing</a>

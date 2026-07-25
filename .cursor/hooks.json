@@ -1,0 +1,44 @@
+{
+  "hooks": {
+    "beforeSubmitPrompt": [
+      {
+        "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook user-prompt-submit --agent cursor",
+        "timeout": 5
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook post-tool-use --agent cursor",
+        "matcher": "Shell|Write|Edit",
+        "timeout": 10
+      }
+    ],
+    "preCompact": [
+      {
+        "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook pre-compact --agent cursor",
+        "timeout": 15
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook pre-tool-use --agent cursor",
+        "matcher": "Shell|Write|Edit",
+        "timeout": 10
+      }
+    ],
+    "sessionStart": [
+      {
+        "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook session-start --agent cursor",
+        "timeout": 15
+      }
+    ],
+    "stop": [
+      {
+        "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook stop --agent cursor",
+        "failClosed": true,
+        "timeout": 120
+      }
+    ]
+  },
+  "version": 1
+}

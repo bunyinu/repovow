@@ -1,8 +1,8 @@
-/* Keel Cloud — shared UI helpers */
+/* RepoVow Cloud — shared UI helpers */
 (function (global) {
-  const KeelUI = {};
+  const RepoVowUI = {};
 
-  KeelUI.escapeHtml = function (s) {
+  RepoVowUI.escapeHtml = function (s) {
     return String(s)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -10,13 +10,13 @@
       .replace(/"/g, "&quot;");
   };
 
-  KeelUI.planBadge = function (plan) {
+  RepoVowUI.planBadge = function (plan) {
     const p = (plan || "free").toLowerCase();
     const cls = p === "pro" ? "badge pro" : "badge";
-    return `<span class="${cls}">${KeelUI.escapeHtml(p)}</span>`;
+    return `<span class="${cls}">${RepoVowUI.escapeHtml(p)}</span>`;
   };
 
-  KeelUI.policyBadge = function (policy) {
+  RepoVowUI.policyBadge = function (policy) {
     if (!policy || !policy.mode) {
       return '<span class="badge muted">policy off</span>';
     }
@@ -27,11 +27,11 @@
     else if (label === "off") cls += " muted";
     else if (policy.ok === false) cls += " warn";
     else cls += " muted";
-    const title = KeelUI.escapeHtml(policy.detail || "");
-    return `<span class="${cls}" title="${title}">policy: ${KeelUI.escapeHtml(label)} · ${KeelUI.escapeHtml(mode)}</span>`;
+    const title = RepoVowUI.escapeHtml(policy.detail || "");
+    return `<span class="${cls}" title="${title}">policy: ${RepoVowUI.escapeHtml(label)} · ${RepoVowUI.escapeHtml(mode)}</span>`;
   };
 
-  KeelUI.renderOnboarding = function (data) {
+  RepoVowUI.renderOnboarding = function (data) {
     const state = data.state || {};
     const goal = state.goal || {};
     const hasGoal = !!(goal.title && goal.title.trim());
@@ -50,23 +50,23 @@
       {
         done: hasGoal,
         label: "Goal set",
-        hint: hasGoal ? goal.title : 'Run keel onboard or edit goal',
+        hint: hasGoal ? goal.title : 'Run repovow onboard or edit goal',
       },
       {
         done: hasSync,
         label: "CLI linked & synced",
-        hint: hasSync ? "State received from repo" : "Run keel cloud link + agent session",
+        hint: hasSync ? "State received from repo" : "Run repovow cloud link + agent session",
       },
       {
         done: acceptanceOn,
         label: "Acceptance gate configured",
-        hint: acceptanceOn ? data.config.acceptance_gate.command : "keel config set --acceptance \"npm test\"",
+        hint: acceptanceOn ? data.config.acceptance_gate.command : "repovow config set --acceptance \"npm test\"",
         optional: true,
       },
       {
         done: policyOk && data.policy && data.policy.label === "valid",
         label: "Signed policy",
-        hint: "keel policy init && keel policy sign",
+        hint: "repovow policy init && repovow policy sign",
         optional: true,
       },
     ];
@@ -81,28 +81,28 @@
     for (const item of items) {
       const icon = item.done ? "✓" : "○";
       const cls = item.done ? "done" : item.optional ? "optional" : "";
-      html += `<li class="${cls}"><span class="check-icon">${icon}</span><div><div>${KeelUI.escapeHtml(item.label)}</div><div class="muted small">${KeelUI.escapeHtml(item.hint)}</div></div></li>`;
+      html += `<li class="${cls}"><span class="check-icon">${icon}</span><div><div>${RepoVowUI.escapeHtml(item.label)}</div><div class="muted small">${RepoVowUI.escapeHtml(item.hint)}</div></div></li>`;
     }
     html += "</ul>";
     return html;
   };
 
-  KeelUI.renderChangelog = function (events) {
+  RepoVowUI.renderChangelog = function (events) {
     if (!events || !events.length) {
-      return '<p class="muted">No events yet. Run an agent session with keel init in your repo.</p>';
+      return '<p class="muted">No events yet. Run an agent session with repovow init in your repo.</p>';
     }
     const rows = events
       .slice()
       .reverse()
       .slice(0, 25)
       .map((ev) => {
-        const at = ev.at ? KeelUI.escapeHtml(ev.at) : "";
-        const event = KeelUI.escapeHtml(ev.event || "event");
-        const agent = ev.agent ? ` · ${KeelUI.escapeHtml(ev.agent)}` : "";
+        const at = ev.at ? RepoVowUI.escapeHtml(ev.at) : "";
+        const event = RepoVowUI.escapeHtml(ev.event || "event");
+        const agent = ev.agent ? ` · ${RepoVowUI.escapeHtml(ev.agent)}` : "";
         const extra = ev.trigger
-          ? ` <span class="muted">(${KeelUI.escapeHtml(ev.trigger)})</span>`
+          ? ` <span class="muted">(${RepoVowUI.escapeHtml(ev.trigger)})</span>`
           : ev.title
-            ? ` <span class="muted">— ${KeelUI.escapeHtml(ev.title)}</span>`
+            ? ` <span class="muted">— ${RepoVowUI.escapeHtml(ev.title)}</span>`
             : "";
         return `<li><time>${at}</time><span class="event-name">${event}${agent}</span>${extra}</li>`;
       })
@@ -110,15 +110,15 @@
     return `<ul class="timeline">${rows}</ul>`;
   };
 
-  KeelUI.renderSnapshotSections = function (snapshot) {
+  RepoVowUI.renderSnapshotSections = function (snapshot) {
     if (!snapshot || !snapshot.trim()) {
       return '<p class="muted">Empty snapshot — set a goal in the editor or via CLI.</p>';
     }
-    const text = KeelUI.escapeHtml(snapshot);
+    const text = RepoVowUI.escapeHtml(snapshot);
     return `<pre class="snapshot-pre">${text}</pre>`;
   };
 
-  KeelUI.copyButton = function (text, label) {
+  RepoVowUI.copyButton = function (text, label) {
     const id = "copy-" + Math.random().toString(36).slice(2, 8);
     setTimeout(() => {
       const btn = document.getElementById(id);
@@ -128,27 +128,5 @@
     return `<button type="button" class="btn secondary small" id="${id}">${label || "Copy"}</button>`;
   };
 
-  KeelUI.saveAccount = function (team) {
-    const license = team.license || team.license_key || team.account_key || "";
-    localStorage.setItem(
-      "keel_account",
-      JSON.stringify({
-        id: team.id,
-        name: team.name,
-        email: team.email || "",
-        license,
-        plan: team.plan,
-      }),
-    );
-  };
-
-  KeelUI.getAccount = function () {
-    try {
-      return JSON.parse(localStorage.getItem("keel_account") || "");
-    } catch (_) {
-      return null;
-    }
-  };
-
-  global.KeelUI = KeelUI;
+  global.RepoVowUI = RepoVowUI;
 })(typeof window !== "undefined" ? window : globalThis);

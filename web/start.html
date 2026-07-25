@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Keel — Sign in</title>
+  <title>RepoVow — Sign in</title>
   <link rel="stylesheet" href="/site.css?v=20260625" />
 </head>
 <body>
   <header class="site-header">
-    <a class="logo" href="/">Keel</a>
+    <a class="logo" href="/">RepoVow</a>
     <nav>
       <a href="/">Home</a>
       <a href="/start" class="active">Account</a>
@@ -29,7 +29,7 @@
       <label for="login-email">Email</label>
       <input id="login-email" type="email" placeholder="you@company.com" autocomplete="email" />
       <label for="login-key">Account key</label>
-      <input id="login-key" type="password" placeholder="keel_team_…" autocomplete="off" />
+      <input id="login-key" type="password" placeholder="repovow_team_…" autocomplete="off" />
       <button type="button" class="btn primary" id="login-btn" style="margin-top:1rem;width:100%">Sign in</button>
       <p id="login-status" class="muted" style="margin-top:1rem"></p>
     </div>
@@ -40,8 +40,16 @@
       <input id="account-name" type="text" placeholder="e.g. Ada, Acme eng" autocomplete="name" />
       <label for="account-email">Email</label>
       <input id="account-email" type="email" placeholder="you@company.com" autocomplete="email" />
+      <label for="signup-code">Signup code <span class="muted">(if required)</span></label>
+      <input id="signup-code" type="password" autocomplete="off" />
       <button type="button" class="btn secondary" id="create-account" style="margin-top:1rem;width:100%">Create free account</button>
       <p id="create-status" class="muted" style="margin-top:1rem"></p>
+      <div id="account-created" class="key-banner" style="display:none;margin-top:1rem">
+        <strong>Save your account key</strong>
+        <pre id="account-key"></pre>
+        <button type="button" class="btn secondary" id="copy-account-key">Copy key</button>
+        <button type="button" class="btn primary" id="continue-account">Continue</button>
+      </div>
     </div>
 
     <p class="muted small" style="margin-top:2rem">Project access? Use the link from your dashboard URL — you'll paste your project key after sign-in.</p>
@@ -49,15 +57,18 @@
 
   <script src="/app.js"></script>
   <script>
-    window.KEEL_CREATE_SECRET = "__KEEL_CREATE_SECRET__";
-    const createSecret = window.KEEL_CREATE_SECRET || "";
     const params = new URLSearchParams(location.search);
     const linkProject = params.get("link");
 
-    const saved = KeelUI.getAccount();
-    if (saved && saved.license && !linkProject) {
-      location.replace("/account");
+    async function redirectExistingSession() {
+      const res = await fetch("/api/auth/session");
+      if (res.ok) {
+        location.replace(linkProject
+          ? "/account?link=" + encodeURIComponent(linkProject)
+          : "/account");
+      }
     }
+    redirectExistingSession();
 
     if (params.get("expired") === "1") {
       const st = document.getElementById("login-status");
@@ -87,7 +98,6 @@
         st.className = "err";
         return;
       }
-      KeelUI.saveAccount(data.team);
       if (linkProject) {
         location.href = "/account?link=" + encodeURIComponent(linkProject);
       } else {
@@ -98,6 +108,7 @@
     document.getElementById("create-account").onclick = async () => {
       const name = document.getElementById("account-name").value.trim();
       const email = document.getElementById("account-email").value.trim();
+      const signupCode = document.getElementById("signup-code").value.trim();
       const st = document.getElementById("create-status");
       st.className = "muted";
       if (!name || !email) {
@@ -106,7 +117,7 @@
         return;
       }
       const headers = { "Content-Type": "application/json" };
-      if (createSecret) headers["X-Keel-Create-Secret"] = createSecret;
+      if (signupCode) headers["X-RepoVow-Create-Secret"] = signupCode;
       st.textContent = "Creating…";
       const res = await fetch("/api/teams", {
         method: "POST",
@@ -119,17 +130,18 @@
         st.className = "err";
         return;
       }
-      sessionStorage.setItem("keel_show_account_key", data.account_key);
-      KeelUI.saveAccount({
-        id: data.id,
-        name: data.name,
-        email,
-        license: data.account_key,
-        plan: data.plan,
-      });
-      location.href = linkProject
-        ? "/account?link=" + encodeURIComponent(linkProject)
-        : "/account";
+      document.getElementById("account-key").textContent = data.account_key;
+      document.getElementById("account-created").style.display = "block";
+      document.getElementById("copy-account-key").onclick =
+        () => navigator.clipboard.writeText(data.account_key);
+      document.getElementById("continue-account").onclick = () => {
+        location.href = linkProject
+          ? "/account?link=" + encodeURIComponent(linkProject)
+          : "/account";
+      };
+      document.getElementById("create-account").disabled = true;
+      st.textContent = "Account created. Save the recovery key before continuing.";
+      st.className = "ok";
     };
   </script>
 </body>

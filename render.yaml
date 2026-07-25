@@ -1,26 +1,28 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
 services:
   - type: web
-    name: keel-cloud
+    name: repovow-cloud
     runtime: docker
     plan: free
     healthCheckPath: /health
     envVars:
-      - key: KEEL_DB_PATH
-        value: /data/keel.db
+      - key: REPOVOW_DB_PATH
+        value: /data/repovow.db
       - key: RUST_LOG
         value: info
-      - key: KEEL_FREE_PROJECT_LIMIT
+      - key: REPOVOW_FREE_PROJECT_LIMIT
         value: "1"
-      - key: KEEL_PRO_PROJECT_LIMIT
+      - key: REPOVOW_PRO_PROJECT_LIMIT
         value: "50"
-      - key: KEEL_STRIPE_PAYMENT_LINK
+      - key: REPOVOW_STRIPE_PAYMENT_LINK
         sync: false
-      - key: KEEL_UPGRADE_CODES
+      - key: REPOVOW_UPGRADE_CODES
         sync: false
-      - key: KEEL_CREATE_SECRET
+      - key: REPOVOW_CREATE_SECRET
         sync: false
+      - key: REPOVOW_COOKIE_SECURE
+        value: "true"
     disk:
-      name: keel-data
+      name: repovow-data
       mountPath: /data
       sizeGB: 1

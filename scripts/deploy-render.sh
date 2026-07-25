@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy Keel Cloud to Render (requires git remote + RENDER_API in env).
+# Deploy RepoVow Cloud to Render (requires git remote + RENDER_API in env).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -11,7 +11,7 @@ if [[ -z "${RENDER_API:-}" ]]; then
 fi
 
 OWNER_ID="${RENDER_OWNER_ID:-tea-d6vircs50q8c739ltq6g}"
-SERVICE_NAME="${RENDER_SERVICE_NAME:-keel-cloud}"
+SERVICE_NAME="${RENDER_SERVICE_NAME:-repovow-cloud}"
 
 echo "==> Checking for existing service..."
 EXISTING=$(curl -sS -H "Authorization: Bearer $RENDER_API" \
@@ -35,7 +35,7 @@ if [[ -z "$REMOTE" ]]; then
   echo "  2. Connect repo at https://dashboard.render.com/blueprints"
   echo "  3. Select render.yaml (Blueprint)"
   echo ""
-  echo "Or run locally: cargo run --release --bin keel-server"
+  echo "Or run locally: cargo run --release --bin repovow-server"
   exit 1
 fi
 
@@ -62,12 +62,12 @@ print(json.dumps({
     "env": "docker",
     "healthCheckPath": "/health",
     "disk": {
-      "name": "keel-data",
+      "name": "repovow-data",
       "mountPath": "/data",
       "sizeGB": 1
     },
     "envVars": [
-      {"key": "KEEL_DB_PATH", "value": "/data/keel.db"},
+      {"key": "REPOVOW_DB_PATH", "value": "/data/repovow.db"},
       {"key": "RUST_LOG", "value": "info"}
     ]
   }

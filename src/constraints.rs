@@ -18,7 +18,7 @@ fn haystack(tool: &str, tool_input: &Value) -> String {
     parts.join(" ")
 }
 
-fn constraint_texts(state: &crate::state::KeelState) -> Vec<String> {
+fn constraint_texts(state: &crate::state::RepoVowState) -> Vec<String> {
     state
         .goal
         .as_ref()
@@ -123,8 +123,8 @@ pub fn check_pre_tool_constraints(
     if wants_read_only(&constraints) && is_write_tool(tool) {
         return Ok((
             true,
-            "Keel constraint guard: read-only mode — file edits are blocked. \
-             Update constraints or run `keel progress --blocker` if this is intentional."
+            "RepoVow constraint guard: read-only mode — file edits are blocked. \
+             Update constraints or run `repovow progress --blocker` if this is intentional."
                 .into(),
         ));
     }
@@ -132,7 +132,7 @@ pub fn check_pre_tool_constraints(
     if wants_no_deps(&constraints) && is_dep_install(tool, &text) {
         return Ok((
             true,
-            "Keel constraint guard: blocked dependency install (constraint: no new deps). \
+            "RepoVow constraint guard: blocked dependency install (constraint: no new deps). \
              Use existing packages or update the goal constraints."
                 .into(),
         ));
@@ -143,7 +143,7 @@ pub fn check_pre_tool_constraints(
             return Ok((
                 true,
                 format!(
-                    "Keel constraint guard: blocked action matching constraint \"no {token}\"."
+                    "RepoVow constraint guard: blocked action matching constraint \"no {token}\"."
                 ),
             ));
         }
@@ -171,21 +171,23 @@ pub fn record_violation(root: Option<&Path>, reason: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::{Goal, KeelState};
     use crate::paths::utcnow;
+    use crate::state::{Goal, RepoVowState};
     use serde_json::json;
 
     fn state_with_constraints(constraints: Vec<&str>) -> tempfile::TempDir {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
-        std::fs::create_dir_all(root.join(crate::KEEL_DIR)).unwrap();
-        let mut state = KeelState::default();
-        state.goal = Some(Goal {
-            title: "t".into(),
-            acceptance: vec![],
-            constraints: constraints.into_iter().map(|s| s.to_string()).collect(),
-            started_at: utcnow(),
-        });
+        std::fs::create_dir_all(root.join(crate::REPOVOW_DIR)).unwrap();
+        let mut state = RepoVowState {
+            goal: Some(Goal {
+                title: "t".into(),
+                acceptance: vec![],
+                constraints: constraints.into_iter().map(|s| s.to_string()).collect(),
+                started_at: utcnow(),
+            }),
+            ..RepoVowState::default()
+        };
         crate::state::save_state(&mut state, Some(root)).unwrap();
         crate::state::init_config(Some(root)).unwrap();
         tmp

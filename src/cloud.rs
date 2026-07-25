@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-use crate::paths::keel_dir;
+use crate::paths::repovow_dir;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CloudConfig {
@@ -12,7 +12,7 @@ pub struct CloudConfig {
 }
 
 pub fn cloud_config_path(root: Option<&Path>) -> std::path::PathBuf {
-    keel_dir(root).join("cloud.json")
+    repovow_dir(root).join("cloud.json")
 }
 
 pub fn load_cloud_config(root: Option<&Path>) -> Result<Option<CloudConfig>> {
@@ -37,15 +37,15 @@ pub fn push_state(root: Option<&Path>) -> Result<()> {
     let Some(config) = load_cloud_config(root)? else {
         return Ok(());
     };
-    let keel = keel_dir(root);
-    let state_path = keel.join(crate::paths::STATE_FILE);
-    let snapshot_path = keel.join(crate::paths::SNAPSHOT_FILE);
+    let repovow = repovow_dir(root);
+    let state_path = repovow.join(crate::paths::STATE_FILE);
+    let snapshot_path = repovow.join(crate::paths::SNAPSHOT_FILE);
     let state_json = std::fs::read_to_string(&state_path).unwrap_or_else(|_| "{}".into());
     let snapshot_md = std::fs::read_to_string(&snapshot_path).unwrap_or_default();
     let local_config = crate::state::load_config(root).unwrap_or_default();
     let config_val = serde_json::to_value(&local_config)?;
-    let changelog_md = std::fs::read_to_string(keel.join(crate::paths::CHANGELOG_FILE))
-        .unwrap_or_default();
+    let changelog_md =
+        std::fs::read_to_string(repovow.join(crate::paths::CHANGELOG_FILE)).unwrap_or_default();
     let changelog_tail = tail_text(&changelog_md, 80);
     let policy = crate::policy::policy_status_json(root);
 
@@ -97,13 +97,13 @@ pub fn pull_state(root: Option<&Path>) -> Result<()> {
     }
 
     let body: serde_json::Value = resp.into_json()?;
-    let keel = keel_dir(root);
-    std::fs::create_dir_all(&keel)?;
+    let repovow = repovow_dir(root);
+    std::fs::create_dir_all(&repovow)?;
 
     let local_before = crate::state::load_state(root).ok();
 
     if let Some(state) = body.get("state") {
-        crate::paths::write_json_atomic(&keel.join(crate::paths::STATE_FILE), state)?;
+        crate::paths::write_json_atomic(&repovow.join(crate::paths::STATE_FILE), state)?;
         if let Some(ref before) = local_before {
             let _ = crate::policy::protect_goal_after_pull(root, before);
         }

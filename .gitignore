@@ -1,12 +1,13 @@
-# Keel
-.keel/*.tmp
-.keel/cloud.json
-.keel/policy.key
+# RepoVow
+.repovow/*.tmp
+.repovow/cloud.json
+.repovow/context-marker.json
+.repovow/policy.key
 target/
 
 # Staged native binaries (built by scripts/stage-npm.sh)
-npm/platforms/*/bin/keel
-npm/keel-cli/vendor/keel
+npm/platforms/*/bin/repovow
+npm/repovow-cli/vendor/repovow
 
 # Legacy
 __pycache__/

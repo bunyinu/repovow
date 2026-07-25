@@ -1,12 +1,15 @@
 use anyhow::{Context, Result};
+use rand::{rngs::OsRng, RngCore};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use uuid::Uuid;
 
 pub const PLAN_FREE: &str = "free";
 pub const PLAN_PRO: &str = "pro";
+pub const SESSION_TTL_SECS: i64 = 60 * 60 * 24 * 30;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Team {
@@ -37,7 +40,6 @@ pub struct Project {
 pub struct OwnedProjectSummary {
     pub id: String,
     pub name: String,
-    pub api_key: String,
     pub updated_at: String,
     pub dashboard_url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -66,14 +68,14 @@ pub struct ProjectSummary {
 static DB: OnceLock<Mutex<Connection>> = OnceLock::new();
 
 pub fn free_project_limit() -> i32 {
-    std::env::var("KEEL_FREE_PROJECT_LIMIT")
+    crate::env_var("REPOVOW_FREE_PROJECT_LIMIT")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(1)
 }
 
 pub fn pro_project_limit() -> i32 {
-    std::env::var("KEEL_PRO_PROJECT_LIMIT")
+    crate::env_var("REPOVOW_PRO_PROJECT_LIMIT")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(50)
@@ -84,17 +86,18 @@ pub fn init_db(path: &Path) -> Result<()> {
         std::fs::create_dir_all(parent)
             .with_context(|| format!("create database directory {}", parent.display()))?;
     }
+    migrate_legacy_database(path)?;
 
     let mut last_err: Option<anyhow::Error> = None;
     for attempt in 1..=8 {
         match try_init_db(path) {
             Ok(()) => return Ok(()),
             Err(e) => {
-                eprintln!("keel-server: database init attempt {attempt}/8 failed: {e:#}");
+                eprintln!("repovow-server: database init attempt {attempt}/8 failed: {e:#}");
                 last_err = Some(e);
                 if path.exists() && attempt >= 3 {
                     if let Err(be) = backup_unreadable_db(path) {
-                        eprintln!("keel-server: could not rotate database file: {be:#}");
+                        eprintln!("repovow-server: could not rotate database file: {be:#}");
                     }
                 }
                 std::thread::sleep(std::time::Duration::from_millis(400 * attempt as u64));
@@ -104,13 +107,45 @@ pub fn init_db(path: &Path) -> Result<()> {
     Err(last_err.unwrap()).context(format!("init database at {}", path.display()))
 }
 
+fn migrate_legacy_database(path: &Path) -> Result<bool> {
+    if path.exists() || path.file_name().and_then(|name| name.to_str()) != Some("repovow.db") {
+        return Ok(false);
+    }
+    let legacy = path.with_file_name("keel.db");
+    if !legacy.is_file() {
+        return Ok(false);
+    }
+
+    std::fs::rename(&legacy, path).with_context(|| {
+        format!(
+            "migrate legacy database {} to {}",
+            legacy.display(),
+            path.display()
+        )
+    })?;
+    for suffix in ["-wal", "-shm"] {
+        let legacy_sidecar = PathBuf::from(format!("{}{suffix}", legacy.display()));
+        if legacy_sidecar.exists() {
+            let current_sidecar = PathBuf::from(format!("{}{suffix}", path.display()));
+            std::fs::rename(&legacy_sidecar, &current_sidecar).with_context(|| {
+                format!(
+                    "migrate legacy database sidecar {} to {}",
+                    legacy_sidecar.display(),
+                    current_sidecar.display()
+                )
+            })?;
+        }
+    }
+    Ok(true)
+}
+
 fn backup_unreadable_db(path: &Path) -> Result<()> {
     let ts = chrono::Utc::now().format("%Y%m%d%H%M%S");
     let backup = PathBuf::from(format!("{}.bak.{ts}", path.display()));
     std::fs::rename(path, &backup)
         .with_context(|| format!("rename {} to {}", path.display(), backup.display()))?;
     eprintln!(
-        "keel-server: moved unreadable database to {}",
+        "repovow-server: moved unreadable database to {}",
         backup.display()
     );
     Ok(())
@@ -138,7 +173,15 @@ fn try_init_db(path: &Path) -> Result<()> {
         );
         CREATE INDEX IF NOT EXISTS idx_projects_api_key ON projects(api_key);
         CREATE INDEX IF NOT EXISTS idx_projects_team_id ON projects(team_id);
-        CREATE INDEX IF NOT EXISTS idx_teams_license ON teams(license_key);",
+        CREATE INDEX IF NOT EXISTS idx_teams_license ON teams(license_key);
+        CREATE TABLE IF NOT EXISTS browser_sessions (
+            token_hash TEXT PRIMARY KEY,
+            team_id TEXT NOT NULL,
+            expires_at INTEGER NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_browser_sessions_team_id ON browser_sessions(team_id);
+        CREATE INDEX IF NOT EXISTS idx_browser_sessions_expires_at ON browser_sessions(expires_at);",
     )?;
     migrate_schema(&conn)?;
     migrate_orphan_projects_conn(&conn)?;
@@ -150,7 +193,12 @@ fn try_init_db(path: &Path) -> Result<()> {
 fn migrate_schema(conn: &Connection) -> Result<()> {
     ensure_column(conn, "projects", "team_id", "team_id TEXT")?;
     ensure_column(conn, "teams", "email", "email TEXT")?;
-    ensure_column(conn, "projects", "config_json", "config_json TEXT NOT NULL DEFAULT '{}'")?;
+    ensure_column(
+        conn,
+        "projects",
+        "config_json",
+        "config_json TEXT NOT NULL DEFAULT '{}'",
+    )?;
     ensure_column(
         conn,
         "projects",
@@ -177,33 +225,27 @@ fn ensure_column(conn: &Connection, table: &str, col: &str, ddl: &str) -> Result
     if col == "team_id" {
         conn.execute("ALTER TABLE projects ADD COLUMN team_id TEXT", [])?;
     } else {
-        conn.execute(
-            &format!("ALTER TABLE {table} ADD COLUMN {ddl}"),
-            [],
-        )?;
+        conn.execute(&format!("ALTER TABLE {table} ADD COLUMN {ddl}"), [])?;
     }
     Ok(())
 }
 
 fn migrate_orphan_projects_conn(conn: &Connection) -> Result<()> {
-    let mut stmt = conn.prepare("SELECT id, name FROM projects WHERE team_id IS NULL OR team_id = ''")?;
+    let mut stmt =
+        conn.prepare("SELECT id, name FROM projects WHERE team_id IS NULL OR team_id = ''")?;
     let orphans: Vec<(String, String)> = stmt
         .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
         .collect::<Result<Vec<_>, _>>()?;
     drop(stmt);
     for (pid, pname) in orphans {
-        let team = create_team_internal_on_conn(conn, &pname, None, PLAN_FREE, free_project_limit())?;
+        let team =
+            create_team_internal_on_conn(conn, &pname, None, PLAN_FREE, free_project_limit())?;
         conn.execute(
             "UPDATE projects SET team_id = ?1 WHERE id = ?2",
             params![team.id, pid],
         )?;
     }
     Ok(())
-}
-
-fn migrate_orphan_projects() -> Result<()> {
-    let c = conn()?;
-    migrate_orphan_projects_conn(&c)
 }
 
 fn conn() -> Result<std::sync::MutexGuard<'static, Connection>> {
@@ -214,11 +256,69 @@ fn conn() -> Result<std::sync::MutexGuard<'static, Connection>> {
 }
 
 fn new_api_key() -> String {
-    format!("keel_{}", Uuid::new_v4().simple())
+    format!("repovow_{}", Uuid::new_v4().simple())
 }
 
 fn new_team_license() -> String {
-    format!("keel_team_{}", Uuid::new_v4().simple())
+    format!("repovow_team_{}", Uuid::new_v4().simple())
+}
+
+fn random_session_token() -> String {
+    let mut bytes = [0_u8; 32];
+    OsRng.fill_bytes(&mut bytes);
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn session_token_hash(token: &str) -> String {
+    let digest = Sha256::digest(token.as_bytes());
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+pub fn create_browser_session(team_id: &str) -> Result<String> {
+    let token = random_session_token();
+    let token_hash = session_token_hash(&token);
+    let now = chrono::Utc::now();
+    let expires_at = now.timestamp() + SESSION_TTL_SECS;
+    let c = conn()?;
+    c.execute(
+        "DELETE FROM browser_sessions WHERE expires_at <= ?1",
+        params![now.timestamp()],
+    )?;
+    c.execute(
+        "INSERT INTO browser_sessions (token_hash, team_id, expires_at, created_at)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![token_hash, team_id, expires_at, now.to_rfc3339()],
+    )?;
+    Ok(token)
+}
+
+pub fn get_team_by_session(token: &str) -> Result<Option<Team>> {
+    if token.len() != 64 || !token.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Ok(None);
+    }
+    let token_hash = session_token_hash(token);
+    let c = conn()?;
+    let mut stmt = c.prepare(
+        "SELECT t.id, t.name, t.email, t.plan, t.license_key, t.max_projects, t.created_at
+         FROM browser_sessions s
+         JOIN teams t ON t.id = s.team_id
+         WHERE s.token_hash = ?1 AND s.expires_at > ?2",
+    )?;
+    let mut rows = stmt.query(params![token_hash, chrono::Utc::now().timestamp()])?;
+    if let Some(row) = rows.next()? {
+        return Ok(Some(team_from_row(row)?));
+    }
+    Ok(None)
+}
+
+pub fn revoke_browser_session(token: &str) -> Result<()> {
+    let token_hash = session_token_hash(token);
+    let c = conn()?;
+    c.execute(
+        "DELETE FROM browser_sessions WHERE token_hash = ?1",
+        params![token_hash],
+    )?;
+    Ok(())
 }
 
 fn create_team_internal(
@@ -322,7 +422,7 @@ pub fn get_team_by_license(license_key: &str) -> Result<Option<Team>> {
     )?;
     let mut rows = stmt.query(params![license_key])?;
     if let Some(row) = rows.next()? {
-        return Ok(Some(team_from_row(&row)?));
+        return Ok(Some(team_from_row(row)?));
     }
     Ok(None)
 }
@@ -334,7 +434,7 @@ pub fn get_team_by_id(id: &str) -> Result<Option<Team>> {
     )?;
     let mut rows = stmt.query(params![id])?;
     if let Some(row) = rows.next()? {
-        return Ok(Some(team_from_row(&row)?));
+        return Ok(Some(team_from_row(row)?));
     }
     Ok(None)
 }
@@ -350,8 +450,13 @@ pub fn count_team_projects(team_id: &str) -> Result<i32> {
 }
 
 pub fn upgrade_team_to_pro(team_license: &str) -> Result<Team> {
-    let team = get_team_by_license(team_license)?
-        .ok_or_else(|| anyhow::anyhow!("team not found"))?;
+    let team =
+        get_team_by_license(team_license)?.ok_or_else(|| anyhow::anyhow!("team not found"))?;
+    upgrade_team_to_pro_by_id(&team.id)
+}
+
+pub fn upgrade_team_to_pro_by_id(team_id: &str) -> Result<Team> {
+    let team = get_team_by_id(team_id)?.ok_or_else(|| anyhow::anyhow!("team not found"))?;
     let now = chrono::Utc::now().to_rfc3339();
     let max = pro_project_limit();
     let c = conn()?;
@@ -369,16 +474,27 @@ pub fn upgrade_team_to_pro(team_license: &str) -> Result<Team> {
 
 pub fn create_project(name: &str, team_license: Option<&str>) -> Result<Project> {
     let team = if let Some(key) = team_license {
-        let team = get_team_by_license(key)?.ok_or_else(|| anyhow::anyhow!("invalid team license"))?;
-        let count = count_team_projects(&team.id)?;
-        if count >= team.max_projects {
-            anyhow::bail!("project limit reached for {} plan ({})", team.plan, team.max_projects);
-        }
-        team
+        get_team_by_license(key)?.ok_or_else(|| anyhow::anyhow!("invalid team license"))?
     } else {
         create_team(name, None)?
     };
+    create_project_for_existing_team(name, &team)
+}
 
+pub fn create_project_for_team(name: &str, team_id: &str) -> Result<Project> {
+    let team = get_team_by_id(team_id)?.ok_or_else(|| anyhow::anyhow!("account not found"))?;
+    create_project_for_existing_team(name, &team)
+}
+
+fn create_project_for_existing_team(name: &str, team: &Team) -> Result<Project> {
+    let count = count_team_projects(&team.id)?;
+    if count >= team.max_projects {
+        anyhow::bail!(
+            "project limit reached for {} plan ({})",
+            team.plan,
+            team.max_projects
+        );
+    }
     let id = Uuid::new_v4().to_string();
     let api_key = new_api_key();
     let now = chrono::Utc::now().to_rfc3339();
@@ -392,7 +508,7 @@ pub fn create_project(name: &str, team_license: Option<&str>) -> Result<Project>
         id,
         name: name.to_string(),
         api_key,
-        team_id: team.id,
+        team_id: team.id.clone(),
         state_json: "{}".into(),
         snapshot_md: String::new(),
         config_json: "{}".into(),
@@ -406,22 +522,21 @@ pub fn list_team_projects(team_id: &str) -> Result<Vec<ProjectSummary>> {
     list_team_projects_inner(team_id, false)
 }
 
-/// Full project rows for an account owner (includes access keys).
+/// Project rows for an authenticated account owner. Access keys are never listed.
 pub fn list_team_projects_owned(team_id: &str) -> Result<Vec<OwnedProjectSummary>> {
     let c = conn()?;
     let mut stmt = c.prepare(
-        "SELECT id, name, api_key, updated_at, state_json, policy_json FROM projects WHERE team_id = ?1 ORDER BY updated_at DESC",
+        "SELECT id, name, updated_at, state_json, policy_json FROM projects WHERE team_id = ?1 ORDER BY updated_at DESC",
     )?;
     let rows = stmt.query_map(params![team_id], |row| {
         let id: String = row.get(0)?;
-        let state_json: String = row.get(4)?;
-        let policy_json: String = row.get(5)?;
+        let state_json: String = row.get(3)?;
+        let policy_json: String = row.get(4)?;
         let (goal_title, current_step, compactions) = fleet_fields_from_state(&state_json);
         Ok(OwnedProjectSummary {
             id: id.clone(),
             name: row.get(1)?,
-            api_key: row.get(2)?,
-            updated_at: row.get(3)?,
+            updated_at: row.get(2)?,
             dashboard_url: format!("/dashboard/{id}"),
             goal_title,
             current_step,
@@ -476,18 +591,13 @@ fn fleet_fields_from_state(state_json: &str) -> (Option<String>, Option<String>,
         .and_then(|t| t.as_str())
         .filter(|s| !s.is_empty())
         .map(|s| s.to_string());
-    let compactions = v
-        .get("compactions")
-        .and_then(|c| c.as_u64())
-        .unwrap_or(0) as u32;
+    let compactions = v.get("compactions").and_then(|c| c.as_u64()).unwrap_or(0) as u32;
     (goal_title, current_step, compactions)
 }
 
-pub fn link_project_to_team(project_id: &str, api_key: &str, team_license: &str) -> Result<Project> {
-    let team = get_team_by_license(team_license)?
-        .ok_or_else(|| anyhow::anyhow!("invalid account key"))?;
-    let project = get_by_id(project_id)?
-        .ok_or_else(|| anyhow::anyhow!("project not found"))?;
+pub fn link_project_to_team(project_id: &str, api_key: &str, team_id: &str) -> Result<Project> {
+    let team = get_team_by_id(team_id)?.ok_or_else(|| anyhow::anyhow!("invalid account"))?;
+    let project = get_by_id(project_id)?.ok_or_else(|| anyhow::anyhow!("project not found"))?;
     if project.api_key != api_key {
         anyhow::bail!("invalid project access key");
     }
@@ -509,8 +619,7 @@ pub fn link_project_to_team(project_id: &str, api_key: &str, team_license: &str)
             params![team.id, project_id],
         )?;
     }
-    get_by_id(project_id)?
-        .ok_or_else(|| anyhow::anyhow!("project not found after link"))
+    get_by_id(project_id)?.ok_or_else(|| anyhow::anyhow!("project not found after link"))
 }
 
 pub fn get_by_api_key(api_key: &str) -> Result<Option<Project>> {
@@ -521,7 +630,7 @@ pub fn get_by_api_key(api_key: &str) -> Result<Option<Project>> {
     )?;
     let mut rows = stmt.query(params![api_key])?;
     if let Some(row) = rows.next()? {
-        return Ok(Some(project_from_row(&row)?));
+        return Ok(Some(project_from_row(row)?));
     }
     Ok(None)
 }
@@ -534,7 +643,7 @@ pub fn get_by_id(id: &str) -> Result<Option<Project>> {
     )?;
     let mut rows = stmt.query(params![id])?;
     if let Some(row) = rows.next()? {
-        return Ok(Some(project_from_row(&row)?));
+        return Ok(Some(project_from_row(row)?));
     }
     Ok(None)
 }
@@ -573,7 +682,7 @@ pub fn list_projects(limit: usize) -> Result<Vec<Project>> {
         "SELECT id, name, api_key, team_id, state_json, snapshot_md, config_json, changelog_jsonl, policy_json, updated_at
          FROM projects ORDER BY updated_at DESC LIMIT ?1",
     )?;
-    let rows = stmt.query_map(params![limit as i64], |row| project_from_row(row))?;
+    let rows = stmt.query_map(params![limit as i64], project_from_row)?;
     let mut out = Vec::new();
     for r in rows {
         out.push(r?);
@@ -582,14 +691,21 @@ pub fn list_projects(limit: usize) -> Result<Vec<Project>> {
 }
 
 pub fn valid_upgrade_code(code: &str) -> bool {
+    let configured = crate::env_var("REPOVOW_UPGRADE_CODES").ok();
+    valid_upgrade_code_from_config(code, configured.as_deref())
+}
+
+fn valid_upgrade_code_from_config(code: &str, configured: Option<&str>) -> bool {
     let code = code.trim();
     if code.is_empty() {
         return false;
     }
-    std::env::var("KEEL_UPGRADE_CODES")
-        .ok()
-        .map(|raw| raw.split(',').map(str::trim).any(|c| c == code))
-        .unwrap_or_else(|| code.starts_with("keel_pro_"))
+    configured.is_some_and(|raw| {
+        raw.split(',')
+            .map(str::trim)
+            .filter(|candidate| !candidate.is_empty())
+            .any(|candidate| candidate == code)
+    })
 }
 
 #[cfg(test)]
@@ -597,17 +713,36 @@ mod tests {
     use super::*;
 
     #[test]
-    fn billing_tier_limits() {
-        std::env::set_var("KEEL_UPGRADE_CODES", "testcode");
+    fn upgrade_codes_fail_closed_without_configuration() {
+        assert!(!valid_upgrade_code_from_config(
+            "repovow_pro_anything",
+            None
+        ));
+        assert!(!valid_upgrade_code_from_config("", Some("expected")));
+        assert!(!valid_upgrade_code_from_config(
+            "wrong",
+            Some("expected,other")
+        ));
+        assert!(valid_upgrade_code_from_config(
+            "expected",
+            Some(" expected, other ")
+        ));
+    }
+
+    #[test]
+    fn migrates_legacy_database_and_sidecars() {
         let tmp = tempfile::tempdir().unwrap();
-        init_db(&tmp.path().join("test.db")).unwrap();
-        let p1 = create_project("one", None).unwrap();
-        let team = get_team_by_id(&p1.team_id).unwrap().unwrap();
-        let err = create_project("two", Some(&team.license_key)).unwrap_err();
-        assert!(err.to_string().contains("project limit"));
-        upgrade_team_to_pro(&team.license_key).unwrap();
-        let p2 = create_project("two", Some(&team.license_key)).unwrap();
-        assert_ne!(p1.id, p2.id);
-        std::env::remove_var("KEEL_UPGRADE_CODES");
+        let legacy = tmp.path().join("keel.db");
+        let current = tmp.path().join("repovow.db");
+        std::fs::write(&legacy, b"database").unwrap();
+        std::fs::write(tmp.path().join("keel.db-wal"), b"wal").unwrap();
+
+        assert!(migrate_legacy_database(&current).unwrap());
+        assert_eq!(std::fs::read(&current).unwrap(), b"database");
+        assert_eq!(
+            std::fs::read(tmp.path().join("repovow.db-wal")).unwrap(),
+            b"wal"
+        );
+        assert!(!legacy.exists());
     }
 }

@@ -15,7 +15,12 @@ use std::io::stdout;
 
 use crate::goal_edit::{load_form, save_goal, GoalForm};
 
-const LABELS: [&str; 4] = ["Goal", "Current step", "Acceptance (one per line)", "Constraints (one per line)"];
+const LABELS: [&str; 4] = [
+    "Goal",
+    "Current step",
+    "Acceptance (one per line)",
+    "Constraints (one per line)",
+];
 
 struct App {
     fields: [String; 4],
@@ -121,7 +126,7 @@ fn draw(f: &mut Frame, app: &App) {
         ])
         .split(f.area());
 
-    let title = Paragraph::new("Keel — Goal editor")
+    let title = Paragraph::new("RepoVow — Goal editor")
         .style(Style::default().add_modifier(Modifier::BOLD))
         .block(Block::default().borders(Borders::ALL));
     f.render_widget(title, chunks[0]);
@@ -138,9 +143,14 @@ fn draw(f: &mut Frame, app: &App) {
         } else {
             Style::default()
         };
-        let label = Span::styled(format!("{}: ", LABELS[i]), Style::default().add_modifier(Modifier::BOLD));
+        let label = Span::styled(
+            format!("{}: ", LABELS[i]),
+            Style::default().add_modifier(Modifier::BOLD),
+        );
         let value = Span::raw(app.fields[i].clone());
-        let block = Block::default().borders(Borders::ALL).border_style(border_style);
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(border_style);
         let para = Paragraph::new(Line::from(vec![label, value])).block(block);
         f.render_widget(para, *area);
     }

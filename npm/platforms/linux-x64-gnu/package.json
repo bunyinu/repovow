@@ -1,7 +1,7 @@
 {
-  "name": "@keel2026/linux-x64-gnu",
-  "version": "0.4.1",
-  "description": "Keel native binary for linux x64",
+  "name": "repovow-linux-x64-gnu",
+  "version": "0.5.0",
+  "description": "RepoVow native binary for linux x64",
   "license": "Apache-2.0",
   "os": [
     "linux"
@@ -10,9 +10,6 @@
     "x64"
   ],
   "files": [
-    "bin/keel"
-  ],
-  "bin": {
-    "keel": "bin/keel"
-  }
+    "bin/repovow"
+  ]
 }

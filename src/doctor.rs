@@ -2,8 +2,8 @@ use anyhow::Result;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 
-use crate::install::keel_binary;
-use crate::paths::{find_project_root, keel_dir};
+use crate::install::repovow_binary;
+use crate::paths::{find_project_root, repovow_dir};
 use crate::policy;
 use crate::state::{load_config, load_state};
 use crate::VERSION;
@@ -19,41 +19,44 @@ pub fn run_doctor() -> Result<Vec<Check>> {
 
     checks.push(Check {
         ok: true,
-        label: "Keel version".into(),
+        label: "RepoVow version".into(),
         detail: VERSION.into(),
     });
 
     let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let root = find_project_root(None);
-    let keel_path = keel_dir(None);
-    let has_config = keel_path.join("config.json").exists();
-    let partial_keel = keel_path.is_dir() && !has_config;
+    let repovow_path = repovow_dir(None);
+    let has_config = repovow_path.join("config.json").exists();
+    let partial_repovow = repovow_path.is_dir() && !has_config;
 
-    let home_keel = std::env::var_os("HOME")
+    let home_repovow = std::env::var_os("HOME")
         .map(PathBuf::from)
-        .map(|h| h.join(".keel"))
+        .map(|h| h.join(".repovow"))
         .filter(|p| p.is_dir());
     let cwd_canon = cwd.canonicalize().unwrap_or(cwd.clone());
-    let home_canon = std::env::var_os("HOME")
-        .and_then(|h| PathBuf::from(h).canonicalize().ok());
-    let mislinked_home = home_keel.is_some()
+    let home_canon = std::env::var_os("HOME").and_then(|h| PathBuf::from(h).canonicalize().ok());
+    let mislinked_home = home_repovow.is_some()
         && home_canon.as_ref() != Some(&cwd_canon)
-        && keel_path == home_canon.as_ref().map(|h| h.join(".keel")).unwrap_or_default()
-        && !cwd.join(".keel").exists()
+        && repovow_path
+            == home_canon
+                .as_ref()
+                .map(|h| h.join(".repovow"))
+                .unwrap_or_default()
+        && !cwd.join(".repovow").exists()
         && !cwd.join(".git").exists();
 
     checks.push(Check {
         ok: has_config,
-        label: ".keel initialized".into(),
+        label: ".repovow initialized".into(),
         detail: if has_config {
-            format!("{}", keel_path.display())
-        } else if partial_keel {
+            format!("{}", repovow_path.display())
+        } else if partial_repovow {
             format!(
-                "partial .keel at {} — run `keel onboard \"...\"` or `keel init`",
-                keel_path.display()
+                "partial .repovow at {} — run `repovow onboard \"...\"` or `repovow init`",
+                repovow_path.display()
             )
         } else {
-            "Run `keel onboard \"your task\" --accept \"tests pass\"`".into()
+            "Run `repovow onboard \"your task\" --accept \"tests pass\"`".into()
         },
     });
 
@@ -61,7 +64,7 @@ pub fn run_doctor() -> Result<Vec<Check>> {
         ok: !mislinked_home,
         label: "Project root".into(),
         detail: if mislinked_home {
-            "Looks like ~/.keel is being used — run `cd your-repo` then `keel init`".into()
+            "Looks like ~/.repovow is being used — run `cd your-repo` then `repovow init`".into()
         } else {
             format!("{}", root.display())
         },
@@ -83,7 +86,7 @@ pub fn run_doctor() -> Result<Vec<Check>> {
     });
 
     let claude_hooks = root.join(".claude/settings.json");
-    let (claude_ok, claude_detail) = hooks_contain_keel(&claude_hooks);
+    let (claude_ok, claude_detail) = hooks_contain_repovow(&claude_hooks);
     checks.push(Check {
         ok: claude_ok,
         label: "Claude Code hooks".into(),
@@ -91,7 +94,7 @@ pub fn run_doctor() -> Result<Vec<Check>> {
     });
 
     let codex_hooks = root.join(".codex/hooks.json");
-    let (codex_ok, codex_detail) = hooks_contain_keel(&codex_hooks);
+    let (codex_ok, codex_detail) = hooks_contain_repovow(&codex_hooks);
     checks.push(Check {
         ok: codex_ok,
         label: "Codex hooks".into(),
@@ -99,22 +102,60 @@ pub fn run_doctor() -> Result<Vec<Check>> {
     });
 
     let cursor_hooks = root.join(".cursor/hooks.json");
-    let (cursor_ok, cursor_detail) = hooks_contain_keel_cursor(&cursor_hooks);
+    let (cursor_ok, cursor_detail) = hooks_contain_repovow_cursor(&cursor_hooks);
     checks.push(Check {
         ok: cursor_ok,
         label: "Cursor hooks".into(),
         detail: cursor_detail,
     });
 
+    if crate::env_var("REPOVOW_SKIP_GLOBAL_HOOKS").as_deref() != Ok("1") {
+        let statuses = crate::install::global_hooks_status().unwrap_or_default();
+        for (agent, path, installed, active) in statuses {
+            checks.push(Check {
+                ok: installed && active,
+                label: format!("{agent} persistent router"),
+                detail: if installed && active {
+                    path.display().to_string()
+                } else if installed {
+                    format!(
+                        "installed at {} but trust is missing — run `repovow agents install`",
+                        path.display()
+                    )
+                } else {
+                    format!(
+                        "missing at {} — run `repovow agents install`",
+                        path.display()
+                    )
+                },
+            });
+        }
+    }
+
+    let agent_skill = root.join(".agents/skills/repovow/SKILL.md");
+    let skill_ok = agent_skill.exists()
+        && std::fs::read_to_string(&agent_skill)
+            .map(|text| text.contains("repovow context --section NAME"))
+            .unwrap_or(false);
+    checks.push(Check {
+        ok: skill_ok,
+        label: "Agent workflow skill".into(),
+        detail: if skill_ok {
+            agent_skill.display().to_string()
+        } else {
+            "missing or stale — run `repovow init`".into()
+        },
+    });
+
     let hooks_installed = claude_ok || codex_ok || cursor_ok;
-    let cloud_ok = keel_path.join("cloud.json").exists();
+    let cloud_ok = repovow_path.join("cloud.json").exists();
     checks.push(Check {
         ok: true,
-        label: "Keel Cloud link".into(),
+        label: "RepoVow Cloud link".into(),
         detail: if cloud_ok {
             "cloud.json present".into()
         } else {
-            "optional — `keel cloud link ...`".into()
+            "optional — `repovow cloud link ...`".into()
         },
     });
 
@@ -133,9 +174,9 @@ pub fn run_doctor() -> Result<Vec<Check>> {
                 .map(|g| g.title.clone())
                 .unwrap_or_default()
         } else if hooks_installed {
-            "required when hooks are installed — run `keel onboard \"...\"`".into()
+            "required when hooks are installed — run `repovow onboard \"...\"`".into()
         } else {
-            "optional — `keel onboard \"...\"` or `keel tui`".into()
+            "optional — `repovow onboard \"...\"` or `repovow tui`".into()
         },
     });
 
@@ -148,11 +189,11 @@ pub fn run_doctor() -> Result<Vec<Check>> {
         detail: if gate_on {
             format!("enabled: `{}`", gate.unwrap().command)
         } else {
-            "off — `keel config set --acceptance \"npm test\"`".into()
+            "off — `repovow config set --acceptance \"npm test\"`".into()
         },
     });
 
-    let expected_bin = keel_binary();
+    let expected_bin = repovow_binary();
     checks.push(Check {
         ok: true,
         label: "Hook binary".into(),
@@ -169,22 +210,25 @@ pub fn run_doctor() -> Result<Vec<Check>> {
     Ok(checks)
 }
 
-fn hooks_contain_keel_cursor(path: &Path) -> (bool, String) {
+fn hooks_contain_repovow_cursor(path: &Path) -> (bool, String) {
     if !path.exists() {
-        return (false, format!("missing {} — run `keel init`", path.display()));
+        return (
+            false,
+            format!("missing {} — run `repovow init`", path.display()),
+        );
     }
     let raw = match std::fs::read_to_string(path) {
         Ok(s) => s,
         Err(e) => return (false, e.to_string()),
     };
-    if raw.contains("keel hook") {
+    if raw.contains("repovow hook") {
         (true, path.display().to_string())
     } else {
-        (false, "no keel hooks — run `keel init`".into())
+        (false, "no repovow hooks — run `repovow init`".into())
     }
 }
 
-fn hooks_contain_keel(path: &Path) -> (bool, String) {
+fn hooks_contain_repovow(path: &Path) -> (bool, String) {
     if !path.exists() {
         return (false, format!("missing {}", path.display()));
     }
@@ -197,10 +241,10 @@ fn hooks_contain_keel(path: &Path) -> (bool, String) {
         Err(e) => return (false, format!("invalid JSON: {e}")),
     };
     let text = doc.to_string();
-    if text.contains("keel hook") {
+    if text.contains("repovow hook") {
         (true, path.display().to_string())
     } else {
-        (false, "no keel hooks — run `keel init`".into())
+        (false, "no repovow hooks — run `repovow init`".into())
     }
 }
 

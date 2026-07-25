@@ -40,27 +40,28 @@ chmod +x scripts/stage-npm.sh
 ./scripts/stage-npm.sh
 
 echo "==> verify npm shim"
-node npm/keel-cli/scripts/verify-shim.js
+node npm/repovow-cli/scripts/verify-shim.js
 
 if [[ "$INSTALL_GLOBAL" -eq 1 ]]; then
-  # Remove legacy Python keel shim if it shadows npm (pip install -e .)
-  if [[ -f "${HOME}/.local/bin/keel" ]] && head -1 "${HOME}/.local/bin/keel" 2>/dev/null | grep -q python; then
-    echo "==> removing legacy Python keel at ~/.local/bin/keel"
+  # Remove only the superseded packages and shim owned by this project.
+  npm uninstall -g @keel2026/cli @keel-agent/cli >/dev/null 2>&1 || true
+  if [[ -f "${HOME}/.local/bin/keel" ]] && "${HOME}/.local/bin/keel" --version 2>/dev/null | grep -Eq '^keel [0-9]'; then
+    echo "==> removing superseded ~/.local/bin/keel"
     rm -f "${HOME}/.local/bin/keel"
   fi
-  echo "==> npm install -g ./npm/keel-cli"
-  npm install -g ./npm/keel-cli
+  echo "==> npm install -g ./npm/repovow-cli"
+  npm install -g ./npm/repovow-cli
   NPM_BIN="$(npm prefix -g)/bin"
-  if [[ -x "${NPM_BIN}/keel" && "${NPM_BIN}/keel" != "${HOME}/.local/bin/keel" ]]; then
+  if [[ -x "${NPM_BIN}/repovow" && "${NPM_BIN}/repovow" != "${HOME}/.local/bin/repovow" ]]; then
     mkdir -p "${HOME}/.local/bin"
-    ln -sf "${NPM_BIN}/keel" "${HOME}/.local/bin/keel"
+    ln -sf "${NPM_BIN}/repovow" "${HOME}/.local/bin/repovow"
   fi
-  echo "Installed: $(command -v keel)"
-  keel --version
+  echo "Installed: $(command -v repovow)"
+  repovow --version
 fi
 
 echo ""
 echo "Done. Next:"
-echo "  npm install -g ./npm/keel-cli    # global install"
-echo "  keel init                        # in your repo"
+echo "  npm install -g ./npm/repovow-cli    # global install"
+echo "  repovow init                        # in your repo"
 echo "  cargo install --path .           # alternative to npm"

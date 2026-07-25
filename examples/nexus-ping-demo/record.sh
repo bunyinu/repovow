@@ -9,7 +9,7 @@ CAST="$OUT_DIR/demo.cast"
 GIF="$ROOT/demo.gif"
 LOG="$OUT_DIR/record.log"
 
-export KEEL="${KEEL:-$(command -v keel)}"
+export REPOVOW="${REPOVOW:-$(command -v repovow)}"
 export TERM="${TERM:-xterm-256color}"
 
 echo "Recording to $CAST (this takes ~10–20 min — 6 Claude calls)..."

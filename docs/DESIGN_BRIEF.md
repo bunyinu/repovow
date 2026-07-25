@@ -1,16 +1,16 @@
-# Keel — Frontend design brief
+# RepoVow — Frontend design brief
 
-**For:** Product designer / UI engineer building Keel Cloud + marketing site  
-**Product:** Keel — repo-local agent state that survives Claude Code compaction  
-**Live reference (functional, not pretty):** https://keel-cloud.onrender.com  
-**Version:** v0.4.1  
+**For:** Product designer / UI engineer building RepoVow Cloud + marketing site
+**Product:** RepoVow — repo-local agent state that survives Claude Code compaction
+**Live reference (functional, not pretty):** https://keel-cloud.onrender.com
+**Version:** v0.5.0
 **Date:** 2026-06-23
 
 ---
 
 ## 1. One-sentence product
 
-**Keel keeps the agent’s task goal in the git repo and reinjects it after Claude `/compact` — with optional team dashboard and CI gates.**
+**RepoVow embeds repo-owned task state into coding-agent lifecycles, reinjecting a quality-preserving context index after compaction with optional team dashboard and CI gates.**
 
 Not “another memory file.” The wedge is: **goal survives compaction; hooks enforce it.**
 
@@ -18,14 +18,14 @@ Not “another memory file.” The wedge is: **goal survives compaction; hooks e
 
 ## 2. What you are designing
 
-Keel has **two surfaces**. The CLI/hooks are Rust (not your job). You are designing **Keel Cloud** — the web product.
+RepoVow has **two surfaces**. The CLI/hooks are Rust (not your job). You are designing **RepoVow Cloud** — the web product.
 
 | Surface | User | Your scope |
 |---------|------|------------|
 | **Marketing site** | Visitors, evaluators | Landing, pricing, trust, demo |
 | **App (logged-in)** | Eng leads, PMs, devs | Account, fleet, project dashboard, goal editor |
 
-**Out of scope for v1 web:** In-browser terminal, agent chat, hook configuration UI (that stays in CLI / `keel init`), full policy key management (CLI-first).
+**Out of scope for v1 web:** In-browser terminal, agent chat, hook configuration UI (that stays in CLI / `repovow init`), full policy key management (CLI-first).
 
 ---
 
@@ -38,12 +38,12 @@ Keel has **two surfaces**. The CLI/hooks are Rust (not your job). You are design
 
 ### Persona B — Eng lead (primary paid buyer)
 - **Job:** “I run 5–50 repos with agents; I need to see who’s stuck and gate merges.”
-- **Flow:** Team account → fleet table → drill into project → edit acceptance criteria → devs run `keel check` in CI.
+- **Flow:** Team account → fleet table → drill into project → edit acceptance criteria → devs run `repovow check` in CI.
 - **Success:** Fleet view shows goal title + current step + last sync per repo.
 
 ### Persona C — PM / tech lead (non-terminal)
 - **Job:** “Set acceptance criteria without opening the IDE.”
-- **Flow:** Web goal editor → save → engineer runs `keel cloud pull`.
+- **Flow:** Web goal editor → save → engineer runs `repovow cloud pull`.
 - **Success:** Clear form: goal, step, acceptance lines, constraint lines.
 
 ---
@@ -76,9 +76,9 @@ Keel has **two surfaces**. The CLI/hooks are Rust (not your job). You are design
 - Subtle. Terminal demo GIF is the hero motion asset — don’t compete with it.
 
 ### Illustration / imagery
-- **Hero:** terminal screen recording (`demo.gif`) — same task, forced `/compact`, with Keel vs without.
+- **Hero:** terminal screen recording (`demo.gif`) — same task, forced `/compact`, with RepoVow vs without.
 - Avoid generic AI brain / robot stock art.
-- Optional: simple diagram — chat context wiped → `.keel/snapshot.md` reinjected via hook.
+- Optional: simple diagram — chat context wiped → budgeted RepoVow context packet reinjected via hook.
 
 ---
 
@@ -91,7 +91,7 @@ Marketing
 ├── Trust & security (/trust)
 └── Get started (/start) → Account
 
-App (account key in browser localStorage)
+App (opaque HttpOnly browser session)
 ├── Account hub (/account)
 │   ├── Create project
 │   ├── Link existing project
@@ -107,7 +107,7 @@ App (account key in browser localStorage)
     └── Constraints (multiline)
 ```
 
-**Auth model (important):** No email/password today. “Account” = **team license key** (`keel_team_…`) stored in `localStorage`. Project = **project API key** (`keel_…`) per project. Designer should design **key custody UX** — copy once banners, “save this key”, sign out, lost key recovery copy (today: “we can’t recover it”).
+**Auth model (important):** Email + account key login creates an opaque, expiring server-side session in an `HttpOnly`, `SameSite=Strict` cookie. Account and project keys are never stored in browser storage. Project API keys (`repovow_…`) are shown once at creation for CLI setup.
 
 ---
 
@@ -119,11 +119,11 @@ App (account key in browser localStorage)
 
 **Must include:**
 - Headline: agent state survives compaction
-- Subhead: goal lives in `.keel/` in the repo; hooks restore after Claude/Codex/Cursor compact
+- Subhead: goal lives in `.repovow/` in the repo; hooks restore after Claude/Codex/Cursor compact
 - Primary CTA: Get started
 - Secondary: Pricing, Trust
-- **Demo GIF** (full width, captioned): with Keel port survives / without Keel agent guesses
-- How it works (5 steps): account → npm install → `keel onboard` → optional cloud link → use agent
+- **Demo GIF** (full width, captioned): with RepoVow port survives / without RepoVow agent guesses
+- How it works (5 steps): account → npm install → `repovow onboard` → optional cloud link → use agent
 - Social proof placeholder (logos/quotes — empty for now)
 
 **Do not:** Feature matrix overload on hero.
@@ -137,7 +137,7 @@ App (account key in browser localStorage)
 | Plan | Price | Bullets |
 |------|-------|---------|
 | **Free** | $0 | 1 cloud project, full CLI, web goal editor |
-| **Team** | $15/mo | Fleet dashboard, 50 repos, CI / `keel check` story |
+| **Team** | $15/mo | Fleet dashboard, 50 repos, CI / `repovow check` story |
 
 **Must include:**
 - Stripe subscribe CTA (external link)
@@ -210,7 +210,7 @@ Today only shows name, goal, updated — **design should add step + compaction +
 
 **Purpose:** Single-repo control panel.
 
-**If no project key in localStorage:** redirect to account with `?link={id}` to paste key.
+**If there is no valid account session:** redirect to account sign-in with `?link={id}`.
 
 **Content:**
 - Project name (editable in v2?)
@@ -218,9 +218,9 @@ Today only shows name, goal, updated — **design should add step + compaction +
 - Last updated
 - **Connect your repo** — code block:
   ```
-  npm install -g @keel2026/cli
-  keel cloud link --url … --project … --key …
-  keel onboard "…" --accept "…"
+  npm install -g repovow
+  repovow cloud link --url … --project … --key …
+  repovow onboard "…" --accept "…"
   ```
 - **Snapshot preview** — rendered markdown or styled pre (goal, acceptance, constraints, progress, do-not-retry)
 - CTA: Edit goal
@@ -245,8 +245,8 @@ Today only shows name, goal, updated — **design should add step + compaction +
 | Acceptance criteria | textarea, one per line | `state.goal.acceptance[]` |
 | Constraints | textarea, one per line | `state.goal.constraints[]` |
 
-**Actions:** Save (primary), Back to dashboard  
-**Success message:** “Saved. Run `keel cloud pull` in your repo.”  
+**Actions:** Save (primary), Back to dashboard
+**Success message:** “Saved. Run `repovow cloud pull` in your repo.”
 **Errors:** inline, red
 
 **Design note:** Frame acceptance/constraints as **intentional requirements** (trusted), not chat injection — subtle trust chrome for v0.4 policy story.
@@ -255,7 +255,7 @@ Today only shows name, goal, updated — **design should add step + compaction +
 
 ## 7. Key user flows (wire these)
 
-### Flow 1 — First-time visitor → using Keel
+### Flow 1 — First-time visitor → using RepoVow
 ```
 Home → Get started → Create account → (save account key) → Account
   → Create project → (save project API key) → Dashboard
@@ -270,7 +270,7 @@ Account → fleet table → click project → dashboard → snapshot
 ### Flow 3 — PM updates acceptance criteria
 ```
 Dashboard → Edit goal → change acceptance → Save
-  → (engineer) keel cloud pull → agent sees new snapshot on next compact
+  → (engineer) repovow cloud pull → agent sees new snapshot on next compact
 ```
 
 ### Flow 4 — Upgrade to Team
@@ -281,7 +281,7 @@ Pricing → Stripe → email with upgrade code → Pricing activate form
 
 ### Flow 5 — Returning user new browser
 ```
-Start → paste account key → Account (all project keys re-fetched)
+Start → paste account key → server creates HttpOnly session → Account
 ```
 
 ---
@@ -292,11 +292,11 @@ Base URL: `https://keel-cloud.onrender.com`
 
 | Endpoint | Auth | Returns |
 |----------|------|---------|
-| `GET /api/projects/{id}` | Bearer project API key | `name`, `snapshot`, `state`, `updated_at` |
-| `PUT /api/projects/{id}/goal` | Bearer | updates goal fields |
-| `GET /api/teams/projects` | Bearer team license | `team` + `projects[]` with `goal_title`, `current_step`, `compactions`, `dashboard_url` |
-| `POST /api/projects` | optional create secret header | new `id`, `api_key`, `dashboard_url` |
-| `POST /api/billing/upgrade` | none | activates pro |
+| `GET /api/projects/{id}` | Browser session or bearer project API key | `name`, `snapshot`, `state`, `updated_at` |
+| `PUT /api/projects/{id}/goal` | Browser session or bearer | updates goal fields |
+| `GET /api/teams/projects` | Browser session or bearer account key | redacted `team` + `projects[]`; never access keys |
+| `POST /api/projects` | Browser session | new `id`, one-time `api_key`, `dashboard_url` |
+| `POST /api/billing/upgrade` | Browser session + configured code | activates pro |
 
 **state.goal shape:**
 ```json
@@ -344,7 +344,7 @@ Base URL: `https://keel-cloud.onrender.com`
 |------------|-----|
 | Memory platform | Goal survives compaction |
 | AI assistant | Claude Code, Codex, Cursor |
-| Prompt engineering | Hooks reinject `.keel/snapshot.md` |
+| Prompt engineering | Hooks reinject `.repovow/snapshot.md` |
 | Guaranteed | Reduces amnesia / enforces (honest) |
 
 **Tagline options:**
@@ -372,15 +372,15 @@ Base URL: `https://keel-cloud.onrender.com`
 - Dark/light toggle (dark default)
 
 ### Not web (stay CLI)
-- `keel init`, hook install, `keel policy sign`, `keel check` config
+- `repovow init`, hook install, `repovow policy sign`, `repovow check` config
 
 ---
 
 ## 13. Competitive context (for hero messaging)
 
-Keel is **not** Claude Tasks API or a chat UI. Comparison for footer or `/pricing`:
+RepoVow is **not** Claude Tasks API or a chat UI. Comparison for footer or `/pricing`:
 
-| | Keel | Claude Tasks | Spreadsheet + CLAUDE.md |
+| | RepoVow | Claude Tasks | Spreadsheet + CLAUDE.md |
 |--|------|--------------|-------------------------|
 | Lives in repo | ✓ | ✗ | partial |
 | Survives compact | hooks | tasks on disk | manual |
@@ -402,10 +402,10 @@ Keel is **not** Claude Tasks API or a chat UI. Comparison for footer or `/pricin
 
 ## 15. Deliverables expected from designer
 
-1. **Figma (or similar):** all screens desktop + mobile key breakpoints  
-2. **Design system:** color, type, spacing, components  
-3. **Prototype:** Home → account → dashboard → edit goal  
-4. **Handoff:** specs for engineer implementing in `web/` or a future React/Vue app  
+1. **Figma (or similar):** all screens desktop + mobile key breakpoints
+2. **Design system:** color, type, spacing, components
+3. **Prototype:** Home → account → dashboard → edit goal
+4. **Handoff:** specs for engineer implementing in `web/` or a future React/Vue app
 
 **Engineering note:** Backend is REST + static HTML today. Designer is free to propose SPA stack; API contract in §8 should remain stable.
 
@@ -421,4 +421,4 @@ Keel is **not** Claude Tasks API or a chat UI. Comparison for footer or `/pricin
 
 ---
 
-*Brief aligns with Keel v0.4.1 codebase and `web/` as deployed on Render.*
+*Brief aligns with RepoVow v0.5.0 codebase and `web/` as deployed on Render.*

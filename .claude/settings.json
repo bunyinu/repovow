@@ -4,7 +4,7 @@
       {
         "hooks": [
           {
-            "command": "/home/lus/.local/bin/keel hook post-tool-use --agent claude",
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook post-tool-use --agent claude",
             "timeout": 10,
             "type": "command"
           }
@@ -16,7 +16,7 @@
       {
         "hooks": [
           {
-            "command": "/home/lus/.local/bin/keel hook pre-compact --agent claude",
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook pre-compact --agent claude",
             "timeout": 15,
             "type": "command"
           }
@@ -28,7 +28,7 @@
       {
         "hooks": [
           {
-            "command": "/home/lus/.local/bin/keel hook pre-tool-use --agent claude",
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook pre-tool-use --agent claude",
             "timeout": 10,
             "type": "command"
           }
@@ -40,12 +40,35 @@
       {
         "hooks": [
           {
-            "command": "/home/lus/.local/bin/keel hook session-start --agent claude",
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook session-start --agent claude",
             "timeout": 15,
             "type": "command"
           }
         ],
-        "matcher": "compact|resume"
+        "matcher": "startup|resume|clear|compact"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook stop --agent claude",
+            "timeout": 120,
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "/home/lus/.nvm/versions/node/v20.20.2/bin/repovow hook user-prompt-submit --agent claude",
+            "timeout": 5,
+            "type": "command"
+          }
+        ]
       }
     ]
   }

@@ -5,8 +5,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-TARGET="${KEEL_TARGET:-}"
-NPM_PKG="${KEEL_NPM_PKG:-}"
+TARGET="${REPOVOW_TARGET:-}"
+NPM_PKG="${REPOVOW_NPM_PKG:-}"
 
 detect_host() {
   local arch os
@@ -33,31 +33,31 @@ if [[ -z "$TARGET" || -z "$NPM_PKG" ]]; then
   read -r TARGET NPM_PKG <<< "$(detect_host)"
 fi
 
-echo "Building keel for ${TARGET}..."
+echo "Building repovow for ${TARGET}..."
 cargo build --release --target "$TARGET" 2>/dev/null || cargo build --release
 
-BIN="target/${TARGET}/release/keel"
+BIN="target/${TARGET}/release/repovow"
 if [[ ! -f "$BIN" ]]; then
-  BIN="target/release/keel"
+  BIN="target/release/repovow"
 fi
 
 if [[ ! -f "$BIN" ]]; then
-  echo "binary not found at target/${TARGET}/release/keel or target/release/keel" >&2
+  echo "binary not found at target/${TARGET}/release/repovow or target/release/repovow" >&2
   exit 1
 fi
 
 PLATFORM_DIR="npm/platforms/${NPM_PKG}"
 mkdir -p "${PLATFORM_DIR}/bin"
-cp "$BIN" "${PLATFORM_DIR}/bin/keel"
-chmod +x "${PLATFORM_DIR}/bin/keel"
+cp "$BIN" "${PLATFORM_DIR}/bin/repovow"
+chmod +x "${PLATFORM_DIR}/bin/repovow"
 
-# Local dev: also vendor into keel-cli for shim fallback
-mkdir -p npm/keel-cli/vendor
-cp "$BIN" npm/keel-cli/vendor/keel
-chmod +x npm/keel-cli/vendor/keel
+# Local dev: also vendor into repovow-cli for shim fallback
+mkdir -p npm/repovow-cli/vendor
+cp "$BIN" npm/repovow-cli/vendor/repovow
+chmod +x npm/repovow-cli/vendor/repovow
 
 VERSION="$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')"
-node npm/keel-cli/scripts/sync-version.js "$VERSION"
+node npm/repovow-cli/scripts/sync-version.js "$VERSION"
 
-echo "Staged ${BIN} -> ${PLATFORM_DIR}/bin/keel"
+echo "Staged ${BIN} -> ${PLATFORM_DIR}/bin/repovow"
 echo "Version: ${VERSION}"

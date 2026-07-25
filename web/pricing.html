@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Keel — Pricing</title>
+  <title>RepoVow — Pricing</title>
   <link rel="stylesheet" href="/site.css?v=20260625" />
 </head>
 <body>
   <header class="site-header">
-    <a class="logo" href="/">Keel</a>
+    <a class="logo" href="/">RepoVow</a>
     <nav>
       <a href="/">Home</a>
       <a href="/start">Account</a>
@@ -21,7 +21,7 @@
   <main class="page page-wide">
     <div class="page-header">
       <h1>Pricing</h1>
-      <p class="lead">CLI and guardrails are free forever. Pay for <strong>Keel Team</strong> — fleet visibility and CI gates across repos.</p>
+      <p class="lead">CLI and guardrails are free forever. Pay for <strong>RepoVow Team</strong> — fleet visibility and CI gates across repos.</p>
     </div>
 
     <div class="pricing-grid">
@@ -41,7 +41,7 @@
         <ul class="feature-list">
           <li><strong>Fleet dashboard</strong> — every repo's goal, step, last sync</li>
           <li>Up to <strong>50 repos</strong> on one team license</li>
-          <li><strong>CI-ready</strong> — <code>keel check</code> gates merges</li>
+          <li><strong>CI-ready</strong> — <code>repovow check</code> gates merges</li>
           <li>Web goal editor for leads across projects</li>
         </ul>
         <a id="stripe-link" class="btn primary" href="#" target="_blank" rel="noopener">Subscribe with Stripe →</a>
@@ -50,11 +50,9 @@
 
     <section class="card" style="margin-top: 2rem">
       <h2 class="card-title">Already paid? Activate Pro</h2>
-      <p class="muted">Paste your <strong>account key</strong> and upgrade code from checkout email.</p>
-      <label for="team-license">Account key</label>
-      <input id="team-license" placeholder="keel_team_…" autocomplete="off" />
+      <p class="muted">Sign in to your account, then paste the upgrade code from checkout email.</p>
       <label for="upgrade-code">Upgrade code</label>
-      <input id="upgrade-code" placeholder="keel_pro_…" autocomplete="off" />
+      <input id="upgrade-code" placeholder="repovow_pro_…" autocomplete="off" />
       <button type="button" class="btn primary" id="activate" style="margin-top: 1rem">Activate Pro</button>
       <p id="upgrade-status" class="muted" style="margin-top: 1rem"></p>
     </section>
@@ -62,7 +60,7 @@
 
   <footer class="site-footer">
     <div class="inner">
-      <span class="brand">Keel — agent state in your repo</span>
+      <span class="brand">RepoVow — agent state in your repo</span>
       <nav>
         <a href="/">Home</a>
         <a href="/trust">Trust</a>
@@ -72,37 +70,35 @@
 
   <script src="/app.js"></script>
   <script>
-    const stripeDefault = "https://buy.stripe.com/test_keel_pro";
+    const stripeDefault = "https://buy.stripe.com/test_repovow_pro";
     document.getElementById("stripe-link").href =
-      window.KEEL_STRIPE_PAYMENT_LINK || stripeDefault;
-
-    const saved = KeelUI.getAccount();
-    if (saved && saved.license) {
-      document.getElementById("team-license").value = saved.license;
-    }
+      window.REPOVOW_STRIPE_PAYMENT_LINK || stripeDefault;
 
     document.getElementById("activate").onclick = async () => {
-      const team_license = document.getElementById("team-license").value.trim();
       const code = document.getElementById("upgrade-code").value.trim();
       const status = document.getElementById("upgrade-status");
       status.className = "muted";
-      if (!team_license || !code) {
-        status.textContent = "Account key and upgrade code required";
+      if (!code) {
+        status.textContent = "Upgrade code required";
         status.className = "err";
         return;
       }
       const res = await fetch("/api/billing/upgrade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ team_license, code }),
+        body: JSON.stringify({ code }),
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        status.innerHTML = 'Sign in from the <a href="/start">account page</a>, then try again.';
+        status.className = "err";
+        return;
+      }
       if (!res.ok) {
         status.textContent = data.error || "Upgrade failed";
         status.className = "err";
         return;
       }
-      KeelUI.saveAccount(data.team);
       status.textContent = "Pro activated — open your account dashboard.";
       status.className = "ok";
     };

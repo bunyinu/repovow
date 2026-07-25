@@ -1,6 +1,6 @@
 # Show HN — draft (you post)
 
-**Title:** Show HN: Keel – repo-local agent goals that survive Claude Code compaction
+**Title:** Show HN: RepoVow – repo-local agent goals that survive Claude Code compaction
 
 **URL:** https://keel-cloud.onrender.com
 
@@ -8,39 +8,39 @@
 
 ## Comment (post as first reply)
 
-Hi HN — I built Keel because my agents kept forgetting the task after `/compact`.
+Hi HN — I built RepoVow because my agents kept forgetting the task after `/compact`.
 
 **The problem:** Compaction summarizes chat history. Architectural decisions, ports, constraints, and “do not retry” lists fall out unless something durable puts them back.
 
-**What Keel does:**
+**What RepoVow does:**
 
-1. You set a goal in the repo: `keel onboard "Ship auth" --accept "tests pass"`
-2. State lives in `.keel/snapshot.md` (git-committable)
+1. You set a goal in the repo: `repovow onboard "Ship auth" --accept "tests pass"`
+2. State lives in `.repovow/snapshot.md` (git-committable)
 3. Hooks for Claude Code, Codex, and Cursor re-inject that snapshot after compact
 4. Optional guardrails: block `npm install`, block stop until tests pass, loop breaker
 
 **Demo (same machine, forced `/compact`):**
 
-- **With Keel:** agent keeps secret port 8842 from the repo goal
-- **Without Keel:** agent defaults to port 3000 and admits it guessed
+- **With RepoVow:** agent keeps secret port 8842 from the repo goal
+- **Without RepoVow:** agent defaults to port 3000 and admits it guessed
 
 GIF on the homepage: https://keel-cloud.onrender.com/demo.gif
 
 **Install:**
 
 ```bash
-npm install -g @keel2026/cli
+npm install -g repovow
 cd your-repo
-keel onboard "your task" --accept "tests pass"
+repovow onboard "your task" --accept "tests pass"
 ```
 
-**Not trying to replace** Claude’s Tasks API or Agentpack — Keel is for teams that want a **repo-owned, enforceable goal file** shared across Claude, Codex, and Cursor, with optional CI gate (`keel check`).
+**Not trying to replace** Claude’s Tasks API or Agentpack — RepoVow is for teams that want a **repo-owned, enforceable goal file** shared across Claude, Codex, and Cursor, with optional CI gate (`repovow check`).
 
 **Team plan ($15/mo):** fleet dashboard + 50 repos — https://keel-cloud.onrender.com/pricing
 
-I'd love feedback on: (1) whether you'd commit `.keel/` to git, (2) Cursor hook UX, (3) what acceptance gate command you'd use in CI.
+I'd love feedback on: (1) whether you'd commit `.repovow/` to git, (2) Cursor hook UX, (3) what acceptance gate command you'd use in CI.
 
-Apache-2.0 CLI: https://github.com/keel-agent/keel
+Apache-2.0 CLI: https://github.com/bunyinu/repovow
 
 ---
 
@@ -56,4 +56,4 @@ Apache-2.0 CLI: https://github.com/keel-agent/keel
 
 - The Show HN submission itself (your account)
 - Pilot team quotes
-- Live Stripe keys (set `KEEL_STRIPE_PAYMENT_LINK` on Render)
+- Live Stripe keys (set `REPOVOW_STRIPE_PAYMENT_LINK` on Render)

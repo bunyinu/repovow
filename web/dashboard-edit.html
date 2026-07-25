@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Keel — Edit goal</title>
+  <title>RepoVow — Edit goal</title>
   <link rel="stylesheet" href="/site.css?v=20260625" />
 </head>
 <body>
   <header class="site-header">
-    <a class="logo" href="/">Keel</a>
+    <a class="logo" href="/">RepoVow</a>
     <nav>
       <a href="/">Home</a>
       <a href="/account">Account</a>
@@ -40,8 +40,7 @@
   <script src="/app.js"></script>
   <script>
     const projectId = "__PROJECT_ID__";
-    const storageKey = "keel_api_key_" + projectId;
-    const loginUrl = "/account?link=" + encodeURIComponent(projectId);
+    const loginUrl = "/start?link=" + encodeURIComponent(projectId);
     const status = document.getElementById("status");
 
     function lines(id) {
@@ -49,13 +48,8 @@
     }
 
     async function loadGoal() {
-      const key = localStorage.getItem(storageKey);
-      if (!key) { location.replace(loginUrl); return; }
-      const res = await fetch("/api/projects/" + projectId, {
-        headers: { Authorization: "Bearer " + key },
-      });
+      const res = await fetch("/api/projects/" + projectId);
       if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem(storageKey);
         location.replace(loginUrl);
         return;
       }
@@ -75,8 +69,6 @@
     }
 
     document.getElementById("save").onclick = async () => {
-      const key = localStorage.getItem(storageKey);
-      if (!key) { location.replace(loginUrl); return; }
       const body = {
         title: document.getElementById("title").value,
         step: document.getElementById("step").value,
@@ -85,7 +77,7 @@
       };
       const res = await fetch("/api/projects/" + projectId + "/goal", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const raw = await res.text();
@@ -94,7 +86,7 @@
         status.className = "err";
         return;
       }
-      status.textContent = "Saved. Run keel cloud pull in your repo to sync locally.";
+      status.textContent = "Saved. Run repovow cloud pull in your repo to sync locally.";
       status.className = "ok";
     };
 

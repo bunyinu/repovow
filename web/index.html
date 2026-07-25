@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Keel — Agent state that survives compaction</title>
+  <title>RepoVow — Agent state that survives compaction</title>
   <link rel="stylesheet" href="/site.css?v=20260625" />
 </head>
 <body>
   <header class="site-header">
-    <a class="logo" href="/">Keel</a>
+    <a class="logo" href="/">RepoVow</a>
     <nav>
       <a href="/" class="active">Home</a>
       <a href="/start">Account</a>
@@ -21,30 +21,30 @@
   <main class="page">
     <section class="hero">
       <h1>Agent state that survives compaction</h1>
-      <p class="lead">Your goal, acceptance criteria, and progress live in <code>.keel/</code> inside the repo. Hooks reinject them when Claude Code, Codex, or Cursor compacts the session.</p>
+      <p class="lead">Your goal, acceptance criteria, and progress live in <code>.repovow/</code> inside the repo. Hooks reinject them when Claude Code, Codex, or Cursor compacts the session.</p>
       <div class="cta-row">
         <a class="btn primary" href="/start">Create account</a>
         <a class="btn secondary" href="/pricing">Team pricing</a>
       </div>
       <div class="install-hint">
-        <code>npm install -g @keel2026/cli</code>
+        <code>npm install -g repovow</code>
       </div>
     </section>
 
     <figure class="demo">
       <div class="demo-frame">
-        <img src="/demo.gif" alt="Compaction demo: with Keel the goal survives, without Keel the agent guesses" width="960" height="540" loading="lazy" />
+        <img src="/demo.gif" alt="Compaction demo: with RepoVow the goal survives, without RepoVow the agent guesses" width="960" height="540" loading="lazy" />
       </div>
-      <figcaption>Same task, forced <code>/compact</code>. With Keel the port stays 7429. Without it the agent guesses.</figcaption>
+      <figcaption>Same task, forced <code>/compact</code>. With RepoVow the port stays 7429. Without it the agent guesses.</figcaption>
     </figure>
 
     <section class="steps">
       <h2>How it works</h2>
       <ol>
         <li><a href="/start">Create an account</a>, add a project from the dashboard.</li>
-        <li><code>npm install -g @keel2026/cli</code></li>
-        <li><code>keel onboard "your task" --accept "tests pass"</code></li>
-        <li>Optional: <code>keel cloud link</code> to sync across machines.</li>
+        <li><code>npm install -g repovow</code></li>
+        <li><code>repovow onboard "your task" --accept "tests pass"</code></li>
+        <li>Optional: <code>repovow cloud link</code> to sync across machines.</li>
         <li>Run your agent. State survives compaction.</li>
       </ol>
     </section>
@@ -52,11 +52,11 @@
 
   <footer class="site-footer">
     <div class="inner">
-      <span>Keel</span>
+      <span>RepoVow</span>
       <nav>
         <a href="/pricing">Pricing</a>
         <a href="/trust">Trust</a>
-        <a href="https://github.com/bunyinu/keel">GitHub</a>
+        <a href="https://github.com/bunyinu/repovow">GitHub</a>
       </nav>
     </div>
   </footer>
