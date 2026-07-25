@@ -3,6 +3,7 @@ FROM rust:1-bookworm AS builder
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
+COPY templates ./templates
 COPY web ./web
 RUN cargo build --release --bin repovow-server
 
