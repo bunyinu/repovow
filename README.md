@@ -243,7 +243,7 @@ cargo test
 - **Release** — tag `v*.*.*` → GitHub binaries + npm publish
 
 ```bash
-git tag v0.2.2 && git push origin v0.2.2
+git tag vX.Y.Z && git push origin vX.Y.Z
 ```
 
 ## Environment

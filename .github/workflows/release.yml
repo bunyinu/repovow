@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 env:
   CARGO_TERM_COLOR: always
@@ -74,15 +75,17 @@ jobs:
   publish:
     name: Publish npm + GitHub release
     needs: build
-    if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: https://registry.npmjs.org
+
+      - name: Use an OIDC-capable npm CLI
+        run: npm install --global npm@latest
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -101,25 +104,41 @@ jobs:
           done
           node npm/repovow-cli/scripts/sync-version.js "$VERSION"
 
+      - name: Publish platform packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+            npm whoami
+          else
+            echo "NPM_TOKEN is unset; npm trusted publishing must authorize this workflow"
+          fi
+
+          node npm/repovow-cli/scripts/prep-publish.js "$VERSION"
+
+          publish_unless_present() {
+            local directory="$1"
+            local name
+            name="$(node -p "require('./${directory}/package.json').name")"
+            if npm view "${name}@${VERSION}" version >/dev/null 2>&1; then
+              echo "${name}@${VERSION} already published; skipping"
+              return
+            fi
+            (cd "$directory" && npm publish --access public --provenance)
+          }
+
+          for pkg in npm/platforms/*/; do
+            if [ -f "${pkg}bin/repovow" ]; then
+              publish_unless_present "${pkg%/}"
+            fi
+          done
+          publish_unless_present npm/repovow-cli
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/dist/*
           generate_release_notes: true
-
-      - name: Publish platform packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "NPM_TOKEN not configured — skipping npm publish"
-            exit 0
-          fi
-          node npm/repovow-cli/scripts/prep-publish.js "$VERSION"
-          for pkg in npm/platforms/*/; do
-            if [ -f "${pkg}bin/repovow" ]; then
-              (cd "$pkg" && npm publish --access public)
-            fi
-          done
-          (cd npm/repovow-cli && npm publish --access public)

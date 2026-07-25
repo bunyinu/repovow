@@ -90,7 +90,11 @@ If rebuilding npm from zero, publish these packages from the `bunyinu` account:
 - `repovow-darwin-x64`
 - `repovow-darwin-arm64`
 
-Set `NPM_TOKEN` in GitHub repo secrets for automated publish.
+The first publish requires an npm granular access token with read/write access to
+all five new packages and 2FA bypass enabled. Store it as the `NPM_TOKEN` GitHub
+secret. After the packages exist, configure npm trusted publishing for
+`bunyinu/repovow` and `.github/workflows/release.yml`; the workflow supports OIDC
+and provenance without a long-lived token.
 
 ---
 
@@ -426,15 +430,23 @@ On tag `v*.*.*`:
 4. **publish job:**
    - Merge platform packages
    - `node npm/repovow-cli/scripts/sync-version.js $VERSION`
-   - GitHub Release with tarballs
    - `node npm/repovow-cli/scripts/prep-publish.js $VERSION`
-   - `npm publish` each platform package + `repovow`
+   - Publish each missing platform package, then `repovow`, with provenance
+   - Create the GitHub Release only after npm publishing succeeds
 
-### Required GitHub secret
+The publish step is resumable: an existing package version is skipped, so a
+failed release can be rerun after correcting registry access.
 
-| Secret | Purpose |
-|--------|---------|
-| `NPM_TOKEN` | npm publish (skip if unset — workflow logs warning) |
+### npm authorization
+
+Use one of these authorization methods:
+
+- npm trusted publisher for `bunyinu/repovow` and `.github/workflows/release.yml`
+- `NPM_TOKEN` with read/write package access and 2FA bypass, required to bootstrap
+  packages that do not yet exist
+
+The workflow fails instead of silently skipping npm when authorization is
+missing or invalid.
 
 ### Post-release verification (mandatory)
 
