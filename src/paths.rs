@@ -167,7 +167,7 @@ mod tests {
 
         let path = repovow_dir(Some(root));
 
-        assert_eq!(path, root.join(REPOVOW_DIR));
+        assert_eq!(path, root.canonicalize().unwrap().join(REPOVOW_DIR));
         assert!(path.join(STATE_FILE).is_file());
         assert!(!root.join(LEGACY_STATE_DIR).exists());
     }
