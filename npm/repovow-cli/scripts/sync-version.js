@@ -10,9 +10,14 @@ if (!version) {
 }
 
 const root = path.join(__dirname, "..", "..");
+const repository = {
+  type: "git",
+  url: "git+https://github.com/bunyinu/repovow.git",
+};
 const cliPkg = path.join(root, "repovow-cli", "package.json");
 const cli = JSON.parse(fs.readFileSync(cliPkg, "utf8"));
 cli.version = version;
+cli.repository = repository;
 
 const opt = cli.optionalDependencies || {};
 for (const name of Object.keys(opt)) {
@@ -27,11 +32,12 @@ for (const dir of fs.readdirSync(platformsDir)) {
   if (!fs.existsSync(pkgPath)) continue;
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
   pkg.version = version;
+  pkg.repository = repository;
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 }
 
 // Cargo.toml
-const cargoPath = path.join(root, "..", "..", "Cargo.toml");
+const cargoPath = path.join(root, "..", "Cargo.toml");
 if (fs.existsSync(cargoPath)) {
   let cargo = fs.readFileSync(cargoPath, "utf8");
   cargo = cargo.replace(/^version = ".*"$/m, `version = "${version}"`);
