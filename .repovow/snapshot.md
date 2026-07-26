@@ -27,6 +27,7 @@ Hooks inject a compact context packet automatically. Read this full snapshot onl
 - Installed persistent Claude/Codex hook routers with hot project activation, one-time mid-session context delivery, safe no-op outside .repovow, and duplicate-event suppression
 - Added zero-command agent bootstrap: npm installs global routers, Git repos initialize on agent events, and the first prompt creates goal plus acceptance context automatically
 - Validated zero-touch Claude and Codex activation on fresh repositories; fixed Codex hook trust registration; 41 unit and 17 integration tests pass; report written to /home/lus/repovow-real-proof/zero-touch-new-project-test/REPORT.md
+- Released RepoVow 0.5.6 with zero-touch Claude/Codex installation, legacy instruction migration, OIDC npm publishing, executable-mode repair, prefix-local hooks, and verified Codex trust.
 
 ## Do NOT retry (already failed)
 _These approaches failed. Try a different strategy._
