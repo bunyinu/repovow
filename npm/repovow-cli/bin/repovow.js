@@ -66,7 +66,10 @@ function main() {
 
   const child = spawn(bin, process.argv.slice(2), {
     stdio: "inherit",
-    env: process.env,
+    env: {
+      ...process.env,
+      REPOVOW_HOOK_BIN: process.env.REPOVOW_HOOK_BIN || path.resolve(__filename),
+    },
   });
 
   child.on("error", (err) => {

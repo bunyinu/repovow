@@ -45,6 +45,15 @@ try {
     );
   }
 
+  const reinstall = spawnSync(process.execPath, [expectedShim, "agents", "install"], {
+    encoding: "utf8",
+    env,
+  });
+  assert(
+    reinstall.status === 0,
+    reinstall.stderr || reinstall.stdout || "agent reinstall failed"
+  );
+
   const claude = fs.readFileSync(path.join(home, "CLAUDE.md"), "utf8");
   const agents = fs.readFileSync(path.join(home, "AGENTS.md"), "utf8");
   const claudeHooks = fs.readFileSync(
