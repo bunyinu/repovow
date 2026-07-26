@@ -3,7 +3,7 @@
 **For:** Product designer / UI engineer building RepoVow Cloud + marketing site
 **Product:** RepoVow — repo-local agent state that survives Claude Code compaction
 **Live reference (functional, not pretty):** https://keel-cloud.onrender.com
-**Version:** v0.5.0
+**Version:** v0.5.1
 **Date:** 2026-06-23
 
 ---
@@ -421,4 +421,4 @@ RepoVow is **not** Claude Tasks API or a chat UI. Comparison for footer or `/pri
 
 ---
 
-*Brief aligns with RepoVow v0.5.0 codebase and `web/` as deployed on Render.*
+*Brief aligns with RepoVow v0.5.1 codebase and `web/` as deployed on Render.*

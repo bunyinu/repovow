@@ -1,6 +1,6 @@
 {
   "name": "repovow",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Repo-local agent state for Claude Code, Codex, and Cursor",
   "license": "Apache-2.0",
   "repository": {
@@ -26,10 +26,10 @@
     "vendor"
   ],
   "optionalDependencies": {
-    "repovow-linux-x64-gnu": "0.5.0",
-    "repovow-linux-arm64-gnu": "0.5.0",
-    "repovow-darwin-x64": "0.5.0",
-    "repovow-darwin-arm64": "0.5.0"
+    "repovow-linux-x64-gnu": "0.5.1",
+    "repovow-linux-arm64-gnu": "0.5.1",
+    "repovow-darwin-x64": "0.5.1",
+    "repovow-darwin-arm64": "0.5.1"
   },
   "engines": {
     "node": ">=18"

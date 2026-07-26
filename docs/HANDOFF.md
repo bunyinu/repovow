@@ -1,6 +1,6 @@
 # RepoVow — Full Handoff (rebuild from scratch)
 
-**Version:** 0.5.0
+**Version:** 0.5.1
 **Repo:** https://github.com/bunyinu/repovow
 **npm:** `repovow` (publisher `bunyinu`)
 **Cloud:** https://keel-cloud.onrender.com (legacy immutable Render hostname; service name is `repovow-cloud`)
@@ -256,7 +256,7 @@ Each `npm/platforms/linux-x64-gnu/package.json`:
 ```json
 {
   "name": "repovow-linux-x64-gnu",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "os": ["linux"],
   "cpu": ["x64"],
   "files": ["bin/repovow"]
@@ -409,10 +409,10 @@ Creates `.repovow/cloud.json` (usually gitignored).
 
 ```bash
 # bump version in Cargo.toml first (source of truth)
-git commit -am "Release v0.5.0"
-git tag v0.5.0
+git commit -am "Release v0.5.1"
+git tag v0.5.1
 git push origin main
-git push origin v0.5.0
+git push origin v0.5.1
 ```
 
 ### GitHub Actions (`.github/workflows/release.yml`)
@@ -445,9 +445,9 @@ uses an OIDC-capable npm CLI, and fails if trusted publishing is unavailable.
 ### Post-release verification (mandatory)
 
 ```bash
-npm install -g repovow@0.5.0
+npm install -g repovow@0.5.1
 which repovow
-repovow --version          # must show 0.5.0
+repovow --version          # must show 0.5.1
 file $(which repovow)      # must be node script or symlink to it — NOT ELF
 repovow policy --help      # must exist on 0.4+
 ```

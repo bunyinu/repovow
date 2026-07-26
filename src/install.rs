@@ -383,6 +383,12 @@ fn install_global_hooks_to(claude_path: &Path, codex_path: &Path) -> Result<()> 
     Ok(())
 }
 
+fn install_global_instructions(home: &Path) -> Result<()> {
+    upsert_snippet(&home.join("CLAUDE.md"), CLAUDE_MD_SNIPPET, "## RepoVow")?;
+    upsert_snippet(&home.join("AGENTS.md"), AGENTS_MD_SNIPPET, "## RepoVow")?;
+    Ok(())
+}
+
 /// Install persistent user-level routers. They are loaded once by each agent and
 /// automatically bootstrap minimal RepoVow state when opened inside a Git repository.
 pub fn install_global_hooks() -> Result<(PathBuf, PathBuf)> {
@@ -395,6 +401,7 @@ pub fn install_global_hooks() -> Result<(PathBuf, PathBuf)> {
         .unwrap_or_else(|| home.join(".codex"));
     let codex_path = codex_home.join("hooks.json");
     install_global_hooks_to(&claude_path, &codex_path)?;
+    install_global_instructions(&home)?;
     // Running the RepoVow installer is consent to trust RepoVow's own handlers. Never
     // register trust for unrelated commands that share the user's hooks file.
     trust_codex_repovow_hooks(&codex_path, &codex_home.join("config.toml"))?;
@@ -888,6 +895,33 @@ mod tests {
         assert!(updated.contains("## RepoVow (agent state)"));
         assert!(!updated.contains("## Keel"));
         assert!(updated.contains("## Project\n\nKeep this."));
+    }
+
+    #[test]
+    fn global_instructions_upgrade_legacy_sections_and_preserve_user_content() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(
+            tmp.path().join("CLAUDE.md"),
+            "## Keel (agent state)\n\nRead `.keel/snapshot.md`.\n\n## User rule\n\nKeep this.\n",
+        )
+        .unwrap();
+        std::fs::write(
+            tmp.path().join("AGENTS.md"),
+            "## Keel (agent state)\n\nRun `keel progress`.\n\n## Tools\n\nKeep tools.\n",
+        )
+        .unwrap();
+
+        install_global_instructions(tmp.path()).unwrap();
+        install_global_instructions(tmp.path()).unwrap();
+
+        let claude = std::fs::read_to_string(tmp.path().join("CLAUDE.md")).unwrap();
+        let agents = std::fs::read_to_string(tmp.path().join("AGENTS.md")).unwrap();
+        assert_eq!(claude.matches("## RepoVow").count(), 1);
+        assert_eq!(agents.matches("## RepoVow").count(), 1);
+        assert!(!claude.contains("## Keel"));
+        assert!(!agents.contains("## Keel"));
+        assert!(claude.contains("## User rule\n\nKeep this."));
+        assert!(agents.contains("## Tools\n\nKeep tools."));
     }
 
     #[test]
