@@ -46,8 +46,24 @@ function resolveBinary() {
   return resolveFromOptionalPackage() || resolveVendorBinary() || "repovow";
 }
 
+function ensureExecutable(bin) {
+  if (process.platform === "win32" || !fs.existsSync(bin)) return;
+
+  const mode = fs.statSync(bin).mode & 0o777;
+  if ((mode & 0o111) === 0) {
+    fs.chmodSync(bin, mode | 0o111);
+  }
+}
+
 function main() {
   const bin = resolveBinary();
+  try {
+    ensureExecutable(bin);
+  } catch (err) {
+    console.error(`repovow: cannot make native binary executable: ${err.message}`);
+    process.exit(1);
+  }
+
   const child = spawn(bin, process.argv.slice(2), {
     stdio: "inherit",
     env: process.env,
