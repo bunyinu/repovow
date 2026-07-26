@@ -42,6 +42,9 @@ chmod +x scripts/stage-npm.sh
 echo "==> verify npm shim"
 node npm/repovow-cli/scripts/verify-shim.js
 
+echo "==> verify automatic agent install"
+node npm/repovow-cli/scripts/verify-install.js
+
 if [[ "$INSTALL_GLOBAL" -eq 1 ]]; then
   # Remove only the superseded packages and shim owned by this project.
   npm uninstall -g @keel2026/cli @keel-agent/cli >/dev/null 2>&1 || true

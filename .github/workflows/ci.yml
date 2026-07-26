@@ -58,3 +58,6 @@ jobs:
 
       - name: Validate repovow.js resolves binary
         run: node npm/repovow-cli/scripts/verify-shim.js
+
+      - name: Validate automatic agent install
+        run: node npm/repovow-cli/scripts/verify-install.js

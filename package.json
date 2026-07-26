@@ -8,6 +8,7 @@
     "stage": "./scripts/stage-npm.sh",
     "release": "./scripts/release.sh",
     "install:global": "./scripts/release.sh --install-global",
-    "verify:shim": "node npm/repovow-cli/scripts/verify-shim.js"
+    "verify:shim": "node npm/repovow-cli/scripts/verify-shim.js",
+    "verify:install": "node npm/repovow-cli/scripts/verify-install.js"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "repovow-linux-arm64-gnu",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "RepoVow native binary for linux arm64",
   "license": "Apache-2.0",
   "repository": {

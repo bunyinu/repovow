@@ -26,7 +26,7 @@ const REPOVOW_SKILL_MARKER: &str = "<!-- managed-by-repovow -->";
 const LEGACY_SKILL_MARKER: &str = "<!-- managed-by-keel -->";
 
 pub fn repovow_binary() -> String {
-    if let Ok(bin) = crate::env_var("REPOVOW_BIN") {
+    if let Ok(bin) = crate::env_var("REPOVOW_HOOK_BIN").or_else(|_| crate::env_var("REPOVOW_BIN")) {
         if bin.contains(' ') {
             return format!("\"{bin}\"");
         }

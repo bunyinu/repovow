@@ -12,7 +12,10 @@ if (
 const shim = path.join(__dirname, "..", "bin", "repovow.js");
 const result = spawnSync(process.execPath, [shim, "agents", "install"], {
   stdio: "inherit",
-  env: process.env,
+  env: {
+    ...process.env,
+    REPOVOW_HOOK_BIN: process.env.REPOVOW_HOOK_BIN || shim,
+  },
 });
 
 if (result.error) {
