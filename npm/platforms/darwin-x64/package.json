@@ -1,6 +1,6 @@
 {
   "name": "repovow-darwin-x64",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "RepoVow native binary for macOS x64",
   "license": "Apache-2.0",
   "repository": {

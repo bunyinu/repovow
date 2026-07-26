@@ -281,8 +281,10 @@ fn codex_repovow_trust_entries(
                 continue;
             };
             for (handler_index, hook) in hooks.iter().enumerate() {
-                let expected = hook_cmd(&event_to_cli_name(event), "codex");
-                let is_repovow = hook["command"].as_str() == Some(expected.as_str());
+                let cli_event = event_to_cli_name(event);
+                let is_repovow = hook["command"]
+                    .as_str()
+                    .is_some_and(|command| is_managed_hook(command, &cli_event, "codex"));
                 if !is_repovow {
                     continue;
                 }
@@ -469,14 +471,13 @@ fn hook_document_contains_all(path: &Path, agent: &str, events: &[&str]) -> bool
         return false;
     };
     events.iter().all(|event| {
-        let expected = format!("hook {} --agent {agent}", event_to_cli_name(event));
         document["hooks"][event].as_array().is_some_and(|groups| {
             groups.iter().any(|group| {
                 group["hooks"].as_array().is_some_and(|hooks| {
                     hooks.iter().any(|hook| {
-                        hook["command"]
-                            .as_str()
-                            .is_some_and(|command| command.contains(&expected))
+                        hook["command"].as_str().is_some_and(|command| {
+                            is_managed_hook(command, &event_to_cli_name(event), agent)
+                        })
                     })
                 })
             })
@@ -530,8 +531,35 @@ fn cursor_hooks() -> Value {
     })
 }
 
+fn managed_hook_invocation(command: &str) -> Option<(&str, &str)> {
+    let (binary, invocation) = command.rsplit_once(" hook ")?;
+    let binary = binary
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+        .unwrap_or(binary);
+    let filename = binary.rsplit(['/', '\\']).next()?;
+    if !matches!(filename, "repovow" | "repovow.js" | "keel") {
+        return None;
+    }
+
+    let mut parts = invocation.split_whitespace();
+    let event = parts.next()?;
+    if parts.next()? != "--agent" {
+        return None;
+    }
+    let agent = parts.next()?;
+    if parts.next().is_some() || !matches!(agent, "claude" | "codex" | "cursor") {
+        return None;
+    }
+    Some((event, agent))
+}
+
+fn is_managed_hook(command: &str, event: &str, agent: &str) -> bool {
+    managed_hook_invocation(command) == Some((event, agent))
+}
+
 fn is_managed_hook_command(command: &str) -> bool {
-    command.contains("repovow hook") || command.contains("keel hook")
+    managed_hook_invocation(command).is_some()
 }
 
 /// Cursor uses `{ "version": 1, "hooks": { "event": [ { "command": ... } ] } }`.
@@ -1024,6 +1052,40 @@ mod tests {
             hash,
             "sha256:a7938f11f7510d8a4d841f90f2c1b049f5faf58c7f30ea4682c656ecd02f4a6d"
         );
+    }
+
+    #[test]
+    fn npm_shim_hooks_are_managed_without_trusting_shell_wrappers() {
+        let tmp = tempfile::tempdir().unwrap();
+        let codex = tmp.path().join("hooks.json");
+        std::fs::write(&codex, "{}").unwrap();
+        let document = json!({
+            "hooks": {
+                "Stop": [{
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": "/opt/repovow/lib/node_modules/repovow/bin/repovow.js hook stop --agent codex"
+                        },
+                        {
+                            "type": "command",
+                            "command": "sh -c 'repovow hook stop --agent codex; run-unrelated-command'"
+                        }
+                    ]
+                }]
+            }
+        });
+
+        let entries = codex_repovow_trust_entries(&codex, &document).unwrap();
+        assert_eq!(entries.len(), 1);
+        assert!(is_managed_hook(
+            "/opt/repovow/lib/node_modules/repovow/bin/repovow.js hook stop --agent codex",
+            "stop",
+            "codex"
+        ));
+        assert!(!is_managed_hook_command(
+            "sh -c 'repovow hook stop --agent codex; run-unrelated-command'"
+        ));
     }
 
     #[test]
